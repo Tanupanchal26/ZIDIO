@@ -2,10 +2,10 @@
   "name": "backend",
   "version": "1.0.0",
   "description": "Node.js + Express backend for IntellMeet",
-  "main": "src/server.js",
+  "main": "src/server.ts",
   "scripts": {
-    "start": "node src/server.js",
-    "dev": "nodemon src/server.js",
+    "start": "node dist/server.js",
+    "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
     "lint": "eslint src --ext .js",
     "test": "jest --runInBand --detectOpenHandles",
     "test:watch": "jest --watch",
@@ -50,14 +50,21 @@
     "pdfkit": "^0.19.1",
     "redis": "^4.7.0",
     "socket.io": "^4.8.1",
+    "ts-node": "^10.9.2",
     "uuid": "^11.0.5",
     "winston": "^3.17.0",
     "winston-daily-rotate-file": "^5.0.0",
     "xss-clean": "^0.1.4"
   },
   "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/mongoose": "^5.11.96",
+    "@types/node": "^26.0.0",
     "jest": "^30.4.2",
     "nodemon": "^3.1.9",
-    "supertest": "^7.2.2"
+    "supertest": "^7.2.2",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^6.0.3"
   }
 }

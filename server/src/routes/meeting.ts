@@ -1,0 +1,31 @@
+// @ts-nocheck
+const router     = require('express').Router();
+const ctrl       = require('../controllers/meeting');
+const { protect, scopeTenant, authorize, roleGuard } = require('../middleware/auth.middleware');
+const { ROLES }  = require('../constants');
+const validate   = require('../middleware/validate.middleware');
+const V          = require('../validators/meeting.validator');
+
+router.use(protect, scopeTenant());
+
+router.post('/',      validate(V.createMeeting),     ctrl.createMeeting);
+router.get('/',       validate(V.listMeetings),       ctrl.listMeetings);
+router.get('/:id',    validate(V.getMeeting),         ctrl.getMeeting);
+router.put('/:id',    validate(V.updateMeeting),      ctrl.updateMeeting);
+router.delete('/:id', validate(V.getMeeting),         ctrl.deleteMeeting);
+
+// Join by room code
+router.post('/join',                                    ctrl.joinMeeting);
+
+router.post('/:id/invite',  validate(V.inviteParticipants), ctrl.inviteParticipants);
+router.post('/:id/rsvp',    validate(V.respondToInvite),    ctrl.respondToInvite);
+router.post('/:id/start',   validate(V.getMeeting),         ctrl.startMeeting);
+router.post('/:id/end',     validate(V.getMeeting),         ctrl.endMeeting);
+
+// Meeting notes
+router.get('/:id/notes',  validate(V.getMeeting),  ctrl.getMeetingNote);
+router.put('/:id/notes',  validate(V.upsertNote),  ctrl.upsertMeetingNote);
+
+module.exports = router;
+
+export {};
