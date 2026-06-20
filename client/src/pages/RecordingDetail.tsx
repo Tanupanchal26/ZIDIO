@@ -4,7 +4,6 @@ import { ArrowLeft, Download, Trash2, Calendar, Clock, HardDrive } from 'lucide-
 import { recordingService } from '../services/recording.service';
 import Loader from '../components/common/Loader';
 import toast from 'react-hot-toast';
-import { format } from 'date-fns';
 
 export default function RecordingDetail() {
   const { id } = useParams();
@@ -61,7 +60,7 @@ export default function RecordingDetail() {
           <div className="flex flex-wrap gap-4 text-sm text-slate-400">
             <span className="flex items-center">
               <Calendar className="w-4 h-4 mr-1" />
-              {format(new Date(recording.createdAt), 'PPpp')}
+              {new Date(recording.createdAt).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}
             </span>
             <span className="flex items-center">
               <Clock className="w-4 h-4 mr-1" />

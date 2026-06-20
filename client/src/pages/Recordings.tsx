@@ -4,7 +4,6 @@ import { Search, Calendar, Video, Play, Trash2, Download } from 'lucide-react';
 import { recordingService } from '../services/recording.service';
 import Loader from '../components/common/Loader';
 import toast from 'react-hot-toast';
-import { format } from 'date-fns';
 
 export default function Recordings() {
   const [recordings, setRecordings] = useState<any[]>([]);
@@ -101,7 +100,7 @@ export default function Recordings() {
                 <div className="flex flex-col gap-1 mt-3">
                   <div className="flex items-center text-sm text-slate-400">
                     <Calendar className="w-4 h-4 mr-2" />
-                    {format(new Date(recording.createdAt), 'PPpp')}
+                    {new Date(recording.createdAt).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}
                   </div>
                 </div>
                 <div className="flex justify-between items-center mt-4 pt-4 border-t border-white/5">
