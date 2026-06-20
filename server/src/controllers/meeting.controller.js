@@ -56,3 +56,8 @@ exports.upsertMeetingNote = asyncHandler(async (req, res) => {
   const note = await meetingService.upsertMeetingNote(req.params.id, req.tenantId, req.user._id, req.body);
   ApiResponse.ok(res, note, 'Notes saved');
 });
+
+exports.joinMeeting = asyncHandler(async (req, res) => {
+  const meeting = await meetingService.joinByRoomId(req.body.roomId, req.tenantId, req.user._id);
+  ApiResponse.ok(res, meeting, 'Joined meeting');
+});

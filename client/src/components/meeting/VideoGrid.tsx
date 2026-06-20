@@ -71,12 +71,22 @@ const VideoTile = ({ name, isMuted, isVideoOff, isScreenSharing, isActive, isLoc
   );
 };
 
-const VideoGrid = ({ localStream }: { localStream?: MediaStream | null }) => {
+const VideoGrid = ({ localStream, remoteStreams }: { localStream?: MediaStream | null; remoteStreams?: Map<string, MediaStream> }) => {
   const { participants, isVideoOff, isMuted, isScreenSharing } = useMeetingStore();
   const { user } = useAuthStore();
+  
   const allTiles = [
     { id: 'local', name: user?.name || 'You', isMuted, isVideoOff, isScreenSharing, isLocal: true, isActive: true, stream: localStream },
-    ...participants.map(p => ({ id: p.socketId, name: p.name, isMuted: p.isMuted, isVideoOff: p.isVideoOff, isScreenSharing: p.isScreenSharing, isLocal: false, isActive: false, stream: null }))
+    ...participants.map(p => ({
+      id: p.socketId,
+      name: p.name,
+      isMuted: p.isMuted,
+      isVideoOff: p.isVideoOff,
+      isScreenSharing: p.isScreenSharing,
+      isLocal: false,
+      isActive: false,
+      stream: remoteStreams?.get(p.socketId) || null,
+    })),
   ];
   
   const isSingle = allTiles.length === 1;

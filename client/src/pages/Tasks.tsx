@@ -91,7 +91,7 @@ const Tasks = () => {
 
   const { data: tasks = [], isLoading } = useQuery<Task[]>({
     queryKey: ['tasks'],
-    queryFn: () => taskService.list().then((r: any) => r.data?.data ?? r.data ?? []),
+    queryFn: () => taskService.list().then((r: any) => r?.data ?? r ?? []),
     staleTime: 30_000,
   });
 

@@ -42,24 +42,24 @@ const AISummary = () => {
 
   const store = useAIStore();
   const authUser = useAppSelector((s) => s.auth.user);
-  const token = localStorage.getItem('token') || '';
+  const token = useAppSelector((s) => s.auth.accessToken) || localStorage.getItem('im_access_token') || '';
 
   const { data: meetingData, isLoading } = useQuery({
     queryKey: ['meetings-ai'],
     queryFn: () =>
       import('../services/meeting.service').then((m) =>
-        m.meetingService.getAll({ limit: 30, status: 'ended' }).then((r: any) => r.data)
+        m.meetingService.getAll({ limit: 30, status: 'ended' }).then((r: any) => r?.data ?? r ?? [])
       ),
     staleTime: 60_000,
   });
-  const meetings: any[] = meetingData?.data ?? [];
+  const meetings: any[] = Array.isArray(meetingData) ? meetingData : (meetingData?.data ?? []);
 
   const { data: aiResult, isLoading: aiLoading, isFetching: aiFetching } = useQuery({
     queryKey: ['ai-result', selectedId],
-    queryFn: () => aiService.getResult(selectedId!).then((r) => r.data),
+    queryFn: () => aiService.getResult(selectedId!).then((r: any) => r?.data ?? r),
     enabled: !!selectedId,
     staleTime: 5 * 60_000,
-    placeholderData: (prev) => prev,
+    placeholderData: (prev: any) => prev,
     retry: 2,
   });
 
@@ -67,8 +67,8 @@ const AISummary = () => {
     if (!searchQuery.trim()) return;
     setSearching(true);
     try {
-      const { data } = await aiService.searchMeetings(searchQuery);
-      setSearchResults(data.results);
+      const res: any = await aiService.searchMeetings(searchQuery);
+      setSearchResults(res?.data?.results ?? res?.results ?? []);
     } catch { toast.error('Search failed'); }
     finally { setSearching(false); }
   };
@@ -77,10 +77,10 @@ const AISummary = () => {
     if (!selectedId) return;
     store.setGenerating(true);
     try {
-      const { data: s } = await aiService.generateSummary(selectedId);
-      store.setSummary(s.summary);
-      const { data: a } = await aiService.getActionItems(selectedId);
-      store.setActionItems(a.actionItems);
+      const sRes: any = await aiService.generateSummary(selectedId);
+      store.setSummary(sRes?.data?.summary ?? sRes?.summary ?? '');
+      const aRes: any = await aiService.getActionItems(selectedId);
+      store.setActionItems(aRes?.data?.actionItems ?? aRes?.actionItems ?? []);
       toast.success('Summary generated');
     } catch { toast.error('Failed to generate summary'); }
     finally { store.setGenerating(false); }
@@ -89,8 +89,8 @@ const AISummary = () => {
   const handleGenerateMinutes = async () => {
     if (!selectedId) return;
     try {
-      const { data } = await aiService.generateMinutes(selectedId);
-      store.setMinutes(data.minutes);
+      const res: any = await aiService.generateMinutes(selectedId);
+      store.setMinutes(res?.data?.minutes ?? res?.minutes ?? '');
       setActiveTab('minutes');
       toast.success('Minutes generated');
     } catch { toast.error('Failed to generate minutes'); }
@@ -103,10 +103,19 @@ const AISummary = () => {
     const updated = [...chatHistory, { role: 'user', content: msg }];
     setChatHistory(updated);
     try {
-      const { data } = await aiService.assistantChat(selectedId, msg, chatHistory);
-      setChatHistory([...updated, { role: 'assistant', content: data.reply }]);
+      const res: any = await aiService.assistantChat(selectedId, msg, chatHistory);
+      setChatHistory([...updated, { role: 'assistant', content: res?.data?.reply ?? res?.reply ?? 'No response' }]);
     } catch { toast.error('Assistant error'); }
     finally { setChatLoading(false); }
+  };
+
+  const handleSaveAsTasks = async () => {
+    if (!selectedId) return;
+    try {
+      const res: any = await aiService.extractAndSaveTasks(selectedId);
+      const count = res?.data?.tasks?.length ?? res?.tasks?.length ?? 0;
+      toast.success(`${count} tasks created from action items`);
+    } catch { toast.error('Failed to save tasks'); }
   };
 
   const handleExportPDF = () => {
@@ -272,6 +281,16 @@ const AISummary = () => {
                     >
                       Export Actions CSV
                     </Button>
+                    {displayActions.length > 0 && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        leftIcon={<CheckCircle2 size={12} />}
+                        onClick={handleSaveAsTasks}
+                      >
+                        Save as Tasks
+                      </Button>
+                    )}
                   </div>
                 )}
               </div>

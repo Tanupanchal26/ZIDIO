@@ -1,7 +1,8 @@
-import { useRef, useState } from 'react';
+import { useRef } from 'react';
 import { useMeetingStore } from '../store/meeting.store';
 import { useAuthStore } from '../store/auth.store';
-import api from '../services/api';
+import { recordingService } from '../services/recording.service';
+import { getSocket } from '../utils/socket';
 import toast from 'react-hot-toast';
 
 export const useRecording = (meetingId: string) => {
@@ -19,8 +20,10 @@ export const useRecording = (meetingId: string) => {
       streamRef.current = stream;
 
       // 2. Initialize MediaRecorder
-      const options = { mimeType: 'video/webm' };
-      const recorder = new MediaRecorder(stream, options);
+      const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9')
+        ? 'video/webm;codecs=vp9'
+        : 'video/webm';
+      const recorder = new MediaRecorder(stream, { mimeType });
       mediaRecorderRef.current = recorder;
       chunksRef.current = [];
 
@@ -41,6 +44,11 @@ export const useRecording = (meetingId: string) => {
       toggleRecording(); // update global state
       toast.success('Recording started');
 
+      // Broadcast recording state to other participants
+      const socket = getSocket();
+      if (socket?.connected) {
+        socket.emit('recording:started', { roomId: meetingId });
+      }
     } catch (error) {
       console.error('Error starting recording:', error);
       toast.error('Could not start recording. Permission denied?');
@@ -61,6 +69,12 @@ export const useRecording = (meetingId: string) => {
         streamRef.current = null;
       }
 
+      // Broadcast recording stopped
+      const socket = getSocket();
+      if (socket?.connected) {
+        socket.emit('recording:stopped', { roomId: meetingId });
+      }
+
       await uploadRecording(blob);
     };
 
@@ -70,14 +84,7 @@ export const useRecording = (meetingId: string) => {
   const uploadRecording = async (blob: Blob) => {
     const toastId = toast.loading('Uploading recording...');
     try {
-      const formData = new FormData();
-      formData.append('video', blob, `recording-${meetingId}.webm`);
-      formData.append('meetingId', meetingId);
-      
-      await api.post('/recordings/upload', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
-      
+      await recordingService.uploadRecording(meetingId, blob);
       toast.success('Recording saved successfully!', { id: toastId });
     } catch (error) {
       console.error('Upload error:', error);

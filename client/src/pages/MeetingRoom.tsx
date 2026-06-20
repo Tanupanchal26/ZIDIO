@@ -109,7 +109,7 @@ const MeetingRoom = () => {
   useFocusTrap(panelRef, panelOpen);
 
   const { setCurrentMeeting, isRecording, currentMeeting } = useMeetingStore();
-  const { localStreamRef, localStream, startScreenShare, stopScreenShare } = useWebRTC({ roomId: id ?? '', userId: user?.id ?? '' });
+  const { localStreamRef, localStream, remoteStreams, startScreenShare, stopScreenShare } = useWebRTC({ roomId: id ?? '', userId: user?.id ?? '' });
 
   useEffect(() => {
     if (id) setCurrentMeeting({ id, title: 'Live Meeting', roomId: id, host: user?.id ?? '' });
@@ -183,7 +183,7 @@ const MeetingRoom = () => {
         {/* Video area */}
         <div className="flex-1 flex flex-col min-w-0 relative">
           <div className="flex-1 relative overflow-hidden">
-            <VideoGrid localStream={localStream} />
+            <VideoGrid localStream={localStream} remoteStreams={remoteStreams} />
           </div>
           <Controls startScreenShare={startScreenShare} stopScreenShare={stopScreenShare} />
         </div>

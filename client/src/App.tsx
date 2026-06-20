@@ -6,7 +6,11 @@ import { useAppDispatch, useAppSelector } from './hooks/useAppDispatch';
 import { clearAuth, refreshAccessToken, setCredentials } from './store/slices/authSlice';
 import AppRoutes from './routes/index';
 import ErrorBoundary from './components/common/ErrorBoundary';
+import { initSentry } from './utils/sentry';
 import './styles/global.css';
+
+// Initialize Sentry as early as possible
+initSentry();
 
 const qc = new QueryClient({ defaultOptions: { queries: { retry: 1, staleTime: 30000 } } });
 

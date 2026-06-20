@@ -57,4 +57,7 @@ export const aiService = {
 
   searchMeetings:  (query: string) =>
     api.get<{ results: SearchResult[] }>('/ai/search', { params: { q: query } }),
+
+  extractAndSaveTasks: (meetingId: string) =>
+    api.post<{ tasks: any[]; message: string }>(`/ai/${meetingId}/extract-tasks`),
 };

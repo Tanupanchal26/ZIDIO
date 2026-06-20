@@ -64,3 +64,30 @@ exports.searchMeetings = asyncHandler(async (req, res) => {
   const results = await aiService.searchMeetings(req.user.tenantId, q);
   res.json({ results });
 });
+
+// POST /ai/:meetingId/extract-tasks — Extract action items and save as Task documents
+exports.extractAndSaveTasks = asyncHandler(async (req, res) => {
+  const Task = require('../models/Task.model');
+  const actionItems = await aiService.getActionItems(req.params.meetingId);
+  
+  if (!actionItems || actionItems.length === 0) {
+    return res.json({ tasks: [], message: 'No action items found to extract' });
+  }
+
+  const tasks = [];
+  for (const item of actionItems) {
+    const task = await Task.create({
+      tenantId: req.tenantId || req.user.tenantId,
+      meeting: req.params.meetingId,
+      createdBy: req.user._id,
+      title: item.text,
+      description: `Auto-extracted from meeting by AI`,
+      priority: item.priority || 'medium',
+      status: 'todo',
+      dueDate: item.dueDate ? new Date(item.dueDate) : null,
+    });
+    tasks.push(task);
+  }
+
+  res.status(201).json({ tasks, message: `${tasks.length} tasks created from action items` });
+});

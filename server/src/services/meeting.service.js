@@ -134,10 +134,32 @@ const upsertMeetingNote = async (meetingId, tenantId, userId, data) => {
   return meetingNoteRepo.upsert(meetingId, tenantId, userId, data);
 };
 
+// ── Join by room code ─────────────────────────────────────────────────────────
+const joinByRoomId = async (roomId, tenantId, userId) => {
+  const Meeting = require('../models/Meeting.model');
+  const meeting = await Meeting.findOne({ roomId, tenantId });
+  if (!meeting) throw ApiError.notFound('Meeting not found. Check the room code.');
+  if (meeting.status === MEETING_STATUS.ENDED) throw ApiError.badRequest('This meeting has already ended.');
+
+  // Add user to participants if not already
+  const isAlreadyParticipant = meeting.participants.some(
+    p => p.toString() === userId.toString()
+  );
+  if (!isAlreadyParticipant) {
+    meeting.participants.push(userId);
+    await meeting.save();
+  }
+
+  return Meeting.findById(meeting._id)
+    .populate('host', 'name email avatar')
+    .populate('participants', 'name email avatar');
+};
+
 module.exports = {
   createMeeting, listMeetings, getMeeting,
   updateMeeting, deleteMeeting,
   inviteParticipants, respondToInvite,
   startMeeting, endMeeting,
   getMeetingNote, upsertMeetingNote,
+  joinByRoomId,
 };

@@ -1,4 +1,4 @@
-import { API_BASE_URL } from '../utils/constants';
+import { API_BASE_URL } from '../constants';
 
 export const exportService = {
   downloadSummaryPDF: (meetingId: string, token: string) => {

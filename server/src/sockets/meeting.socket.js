@@ -8,12 +8,34 @@ module.exports = (io, socket) => {
   // ── Join / Leave ───────────────────────────────────────────────────────────
   socket.on('meeting:join', async (roomId) => {
     socket.join(`meeting:${roomId}`);
+    // Also join the chat room for this meeting
+    socket.join(`chat:${roomId}`);
+
     socket.to(`meeting:${roomId}`).emit('meeting:user-joined', {
       socketId: socket.id,
       user: { id: socket.user.id, name: socket.user.name, avatar: socket.user.avatar },
     });
+
     const room = io.sockets.adapter.rooms.get(`meeting:${roomId}`);
+    const participants = [];
+    if (room) {
+      for (const sid of room) {
+        const s = io.sockets.sockets.get(sid);
+        if (s?.user) {
+          participants.push({
+            id: s.user.id,
+            name: s.user.name,
+            avatar: s.user.avatar,
+            socketId: sid,
+            isHost: false,
+            isMuted: false,
+            isVideoOff: true,
+          });
+        }
+      }
+    }
     io.to(`meeting:${roomId}`).emit('meeting:participant-count', room?.size || 0);
+    io.to(`meeting:${roomId}`).emit('meeting:participants-list', participants);
   });
 
   socket.on('meeting:signal', ({ roomId, signal, to }) => {
@@ -22,6 +44,7 @@ module.exports = (io, socket) => {
 
   socket.on('meeting:leave', (roomId) => {
     socket.leave(`meeting:${roomId}`);
+    socket.leave(`chat:${roomId}`);
     socket.to(`meeting:${roomId}`).emit('meeting:user-left', {
       socketId: socket.id,
       userId:   socket.user.id,
@@ -38,6 +61,31 @@ module.exports = (io, socket) => {
       isMuted,
       isVideoOff,
       isScreenSharing,
+    });
+  });
+
+  // ── Screen Share state ─────────────────────────────────────────────────────
+  socket.on('meeting:screen-share', ({ roomId, isSharing }) => {
+    io.to(`meeting:${roomId}`).emit('meeting:screen-share', {
+      userId: socket.user.id,
+      socketId: socket.id,
+      name: socket.user.name,
+      isSharing,
+    });
+  });
+
+  // ── Recording state broadcast ──────────────────────────────────────────────
+  socket.on('recording:started', ({ roomId }) => {
+    io.to(`meeting:${roomId}`).emit('recording:started', {
+      userId: socket.user.id,
+      name: socket.user.name,
+    });
+  });
+
+  socket.on('recording:stopped', ({ roomId }) => {
+    io.to(`meeting:${roomId}`).emit('recording:stopped', {
+      userId: socket.user.id,
+      name: socket.user.name,
     });
   });
 

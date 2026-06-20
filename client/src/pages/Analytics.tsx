@@ -7,6 +7,7 @@ import Card from '../components/common/Card';
 import Button from '../components/common/Button';
 import { analyticsService } from '../services/analytics.service';
 import { exportService } from '../services/export.service';
+import { useAppSelector } from '../hooks/useAppDispatch';
 
 const TP = ({ active, payload, label }: any) => active && payload?.length ? (
   <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl px-3.5 py-2.5 shadow-md text-[12px] backdrop-blur-md">
@@ -22,13 +23,14 @@ const fu = (delay = 0) => ({
 });
 
 const Analytics = () => {
-  const { data, isLoading, error } = useQuery({
+  const token = useAppSelector(s => s.auth.accessToken) || localStorage.getItem('im_access_token') || '';
+
+  const { data: rawData, isLoading, error } = useQuery({
     queryKey: ['analytics'],
-    queryFn: () => analyticsService.getAnalytics().then(res => res.data),
+    queryFn: () => analyticsService.getAnalytics().then((res: any) => res?.data ?? res),
   });
 
   const handleExportAnalytics = () => {
-    const token = localStorage.getItem('im_access_token') || localStorage.getItem('token') || '';
     exportService.downloadAnalyticsCSV(token);
   };
 
@@ -40,11 +42,12 @@ const Analytics = () => {
     );
   }
 
-  if (error || !data) {
+  if (error || !rawData) {
     return <div className="text-red-500">Failed to load analytics data.</div>;
   }
 
-  const { weekly, taskData, productivity, engagement } = data;
+  const data = rawData;
+  const { weekly = [], taskData = [], productivity = [], engagement = [] } = data;
 
   return (
     <div className="flex flex-col gap-6 font-sans text-[var(--color-text)]">
@@ -143,13 +146,13 @@ const Analytics = () => {
           <div className="flex items-center justify-between mb-5">
             <h2 className="text-[13.5px] font-bold text-[var(--color-text)]">Productivity Score Trend</h2>
             <span className="text-[1.5rem] font-bold tracking-tight bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-              87%
+              {productivity.length > 0 ? `${productivity[productivity.length - 1]?.score || 0}%` : '—'}
             </span>
           </div>
           <ResponsiveContainer width="100%" height={180}>
             <BarChart data={productivity} margin={{ top: 5, right: 5, bottom: 0, left: -20 }}>
               <XAxis dataKey="week" tick={{ fill: '#5E5E5C', fontSize: 11 }} axisLine={false} tickLine={false} />
-              <YAxis domain={[60, 100]} tick={{ fill: '#5E5E5C', fontSize: 11 }} axisLine={false} tickLine={false} />
+              <YAxis domain={[0, 100]} tick={{ fill: '#5E5E5C', fontSize: 11 }} axisLine={false} tickLine={false} />
               <Tooltip content={<TP />} />
               <Bar dataKey="score" name="Score" fill="#AFA9B4" radius={[6, 6, 0, 0]} />
             </BarChart>

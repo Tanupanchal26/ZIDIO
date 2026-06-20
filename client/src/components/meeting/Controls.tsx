@@ -2,9 +2,11 @@ import { Mic, MicOff, Video, VideoOff, Monitor, Circle, PhoneOff, Hand, Smile, M
 import { useMeetingStore } from '../../store/meeting.store';
 import { useMeeting } from '../../hooks/useMeeting';
 import { useRecording } from '../../hooks/useRecording';
+import { getSocket } from '../../utils/socket';
 import { clsx } from 'clsx';
 import { useParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import { useState } from 'react';
 
 interface ControlBtnProps {
   icon: any;
@@ -56,6 +58,7 @@ const Controls = ({ startScreenShare, stopScreenShare }: ControlsProps) => {
   } = useMeetingStore();
   const { leaveMeeting } = useMeeting(currentMeeting?.roomId);
   const { startRecording, stopRecording } = useRecording(meetingId ?? '');
+  const [handRaised, setHandRaised] = useState(false);
 
   const handleRecordingToggle = async () => {
     try {
@@ -75,6 +78,20 @@ const Controls = ({ startScreenShare, stopScreenShare }: ControlsProps) => {
     } else {
       if (startScreenShare) await startScreenShare();
     }
+  };
+
+  const handleRaiseHand = () => {
+    const newState = !handRaised;
+    setHandRaised(newState);
+    const socket = getSocket();
+    if (socket?.connected && meetingId) {
+      socket.emit('meeting:raise-hand', { roomId: meetingId, raised: newState });
+    }
+    toast(newState ? '✋ Hand raised' : '✋ Hand lowered', { duration: 2000 });
+  };
+
+  const handleReaction = () => {
+    toast('👍', { duration: 2000, icon: '🎉' });
   };
 
   return (
@@ -122,17 +139,13 @@ const Controls = ({ startScreenShare, stopScreenShare }: ControlsProps) => {
         <ControlBtn
           icon={Hand}
           label="Hand"
-          onClick={() => {}}
+          onClick={handleRaiseHand}
+          active={handRaised}
         />
         <ControlBtn
           icon={Smile}
           label="React"
-          onClick={() => {}}
-        />
-        <ControlBtn
-          icon={MoreHorizontal}
-          label="More"
-          onClick={() => {}}
+          onClick={handleReaction}
         />
       </div>
 

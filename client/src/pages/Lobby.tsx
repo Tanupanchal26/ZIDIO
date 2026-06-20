@@ -12,7 +12,10 @@ import toast from 'react-hot-toast';
 import { PageContainer } from '../components/layout/PageContainer';
 import { PageHeader } from '../components/layout/PageHeader';
 
-const fmt = (iso: string) => new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+const fmt = (iso: string) => {
+  if (!iso) return '—';
+  return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+};
 
 const Lobby = () => {
   const navigate = useNavigate();
@@ -22,27 +25,51 @@ const Lobby = () => {
   const [joinId, setJoinId] = useState('');
   const qc = useQueryClient();
 
-  // Wire to real meeting service
+  // Fetch meetings — API returns { success, data, ... } which is unwrapped by axios to { success, data }
+  // so meetings are at response.data
   const { data: meetingsResponse, isLoading } = useQuery({
     queryKey: ['meetings'],
-    queryFn: () => meetingService.getAll({ limit: 10 }).then((r: any) => r.data?.data ?? r.data ?? []),
+    queryFn: () => meetingService.getAll({ limit: 10 }).then((r: any) => r?.data ?? r ?? []),
   });
-  const meetings = meetingsResponse || [];
+  const meetings = Array.isArray(meetingsResponse) ? meetingsResponse : [];
 
   const createMutation = useMutation({
     mutationFn: () => meetingService.create({ title: title || 'Quick Meeting' }) as Promise<any>,
-    onSuccess: (data: any) => {
+    onSuccess: (response: any) => {
       qc.invalidateQueries({ queryKey: ['meetings'] });
       toast.success('Meeting created!');
       setShowCreate(false);
-      navigate(MEETING_ROUTE(data._id || data.id || 'm_new'));
+      // API response is unwrapped by axios interceptor: { success, data: meeting }
+      const meeting = response?.data || response;
+      const meetingId = meeting?._id || meeting?.id || meeting?.roomId;
+      if (meetingId) {
+        navigate(MEETING_ROUTE(meetingId));
+      } else {
+        toast.error('Meeting created but could not get ID for redirection');
+      }
     },
-    onError: () => toast.error('Failed to create meeting'),
+    onError: (err: any) => toast.error(err?.message || 'Failed to create meeting'),
   });
 
-  const handleJoin = () => {
-    if (!joinId.trim()) return;
-    navigate(MEETING_ROUTE(joinId.trim()));
+  const handleJoin = async () => {
+    const code = joinId.trim();
+    if (!code) return;
+    
+    try {
+      const response: any = await meetingService.join(code);
+      const meeting = response?.data || response;
+      const meetingId = meeting?._id || meeting?.id;
+      if (meetingId) {
+        toast.success('Joined meeting!');
+        navigate(MEETING_ROUTE(meetingId));
+      } else {
+        // If no meeting found with exact match, try navigating directly (could be a roomId)
+        navigate(MEETING_ROUTE(code));
+      }
+    } catch (err: any) {
+      // If validation fails, still try navigating directly as it could be a direct room ID
+      toast.error(err?.message || 'Meeting not found. Check the code and try again.');
+    }
   };
 
   return (
@@ -110,18 +137,18 @@ const Lobby = () => {
           ) : (
             meetings.map((m: any) => (
               <div key={m._id} className="flex items-center gap-4 p-4 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] hover:border-[var(--color-border-strong)]/30 hover:bg-[var(--color-surface-hover)] transition-all cursor-pointer shadow-sm hover:shadow" onClick={() => navigate(MEETING_ROUTE(m._id))}>
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center border ${m.isActive ? 'bg-[#AFA9B4]/20 border-[#AFA9B4]/30' : 'bg-[var(--color-bg-tertiary)] border border-[var(--color-border)]/60'}`}>
-                  <Video size={16} className={m.isActive ? 'text-[var(--color-primary)]' : 'text-[var(--color-text-muted)]'} />
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center border ${m.status === 'active' ? 'bg-[#AFA9B4]/20 border-[#AFA9B4]/30' : 'bg-[var(--color-bg-tertiary)] border border-[var(--color-border)]/60'}`}>
+                  <Video size={16} className={m.status === 'active' ? 'text-[var(--color-primary)]' : 'text-[var(--color-text-muted)]'} />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-bold text-[var(--color-text)] truncate">{m.title}</p>
                   <div className="flex items-center gap-2 mt-0.5">
                     <Clock size={11} className="text-[var(--color-text-dim)]" />
-                    <span className="text-xs text-[var(--color-text-dim)]">{fmt(m.startedAt)}</span>
+                    <span className="text-xs text-[var(--color-text-dim)]">{fmt(m.startedAt || m.createdAt)}</span>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  {m.isActive ? <Badge variant="success">Live</Badge> : <Badge variant="default">Ended</Badge>}
+                  {m.status === 'active' ? <Badge variant="success">Live</Badge> : <Badge variant="default">Ended</Badge>}
                   <Button variant="ghost" size="sm" className="gap-1.5 font-bold hover:text-[var(--color-text)]">Join <ArrowRight size={12} /></Button>
                 </div>
               </div>

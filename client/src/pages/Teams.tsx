@@ -24,7 +24,7 @@ const Teams = () => {
 
   const { data: teams = [], isLoading } = useQuery<Team[]>({
     queryKey: ['teams'],
-    queryFn: () => teamService.list().then((r: any) => r.data),
+    queryFn: () => teamService.list().then((r: any) => r?.data ?? r ?? []),
   });
 
   const createMutation = useMutation({

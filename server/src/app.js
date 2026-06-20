@@ -16,9 +16,13 @@ const notFound         = require('./middleware/notFound.middleware');
 const errorMiddleware  = require('./middleware/error.middleware');
 const passport         = require('./config/passport');
 const v1Router         = require('./routes/v1/index');
+const { initSentry, sentryRequestHandler, sentryErrorHandler } = require('./config/sentry');
 
 const app = express();
 
+// Initialize Sentry (must be before any other middleware)
+initSentry(app);
+app.use(sentryRequestHandler());
 app.use(requestId);
 
 app.use(helmet({
@@ -77,6 +81,7 @@ app.use('/api', (req, res, next) => {
 });
 
 app.use(notFound);
+app.use(sentryErrorHandler());
 app.use(errorMiddleware);
 
 module.exports = app;
