@@ -5,7 +5,7 @@ process.env.JWT_SECRET       = 'test-secret-minimum-32-characters-ok';
 process.env.JWT_REFRESH_SECRET = 'test-refresh-secret-minimum-32-chars';
 
 const request = require('supertest');
-const app     = require('../../src/app');
+const app     = require('../src/app');
 
 describe('GET /health', () => {
   it('returns 200 with status ok', async () => {

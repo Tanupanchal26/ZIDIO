@@ -59,12 +59,22 @@ app.use(hpp());
 
 app.use('/api', apiLimiter);
 
-app.get('/health', (_req, res) =>
-  res.json({ status: 'ok', timestamp: new Date().toISOString(), uptime: process.uptime() })
+app.get('/health', (req, res) =>
+  res.json({
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    requestId: res.locals.requestId,
+  })
 );
 
 app.use('/api/v1', v1Router);
-app.use('/api', (req, res) => res.redirect(301, `/api/v1${req.url}`));
+app.use('/api', (req, res, next) => {
+  if (req.url.startsWith('/v1')) {
+    return next();
+  }
+  res.redirect(301, `/api/v1${req.url}`);
+});
 
 app.use(notFound);
 app.use(errorMiddleware);
