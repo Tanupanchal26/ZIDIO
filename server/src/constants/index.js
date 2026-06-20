@@ -16,19 +16,13 @@ const HTTP = {
 
 // ─── RBAC Roles (ordered by privilege) ──────────────────────────────────────
 const ROLES = {
-  SUPER_ADMIN: 'super_admin',
-  ADMIN:       'admin',
-  MANAGER:     'manager',
-  EMPLOYEE:    'employee',
-  GUEST:       'guest',
+  ADMIN:  'admin',
+  MEMBER: 'member',
 };
 
 const ROLE_HIERARCHY = [
-  ROLES.SUPER_ADMIN,
   ROLES.ADMIN,
-  ROLES.MANAGER,
-  ROLES.EMPLOYEE,
-  ROLES.GUEST,
+  ROLES.MEMBER,
 ];
 
 // ─── User Status ─────────────────────────────────────────────────────────────

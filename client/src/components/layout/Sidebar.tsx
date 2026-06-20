@@ -19,11 +19,7 @@ const NAV_PRIMARY = [
   { label: 'Channels',  icon: Hash,            to: '/channels' },
 ];
 
-const NAV_TOOLS = [
-  { label: 'AI Summary',    icon: Brain,       to: ROUTES.AI_SUMMARY },
-  { label: 'Tasks',         icon: CheckSquare, to: ROUTES.TASKS },
-  { label: 'Analytics',     icon: BarChart2,   to: ROUTES.ANALYTICS },
-  { label: 'Notifications', icon: Bell,        to: ROUTES.NOTIFICATIONS },
+const SECONDARY_LINKS = [{ label: 'Notifications', icon: Bell,        to: ROUTES.NOTIFICATIONS },
 ];
 
 interface NavItemProps {
@@ -73,6 +69,14 @@ const Sidebar = () => {
   const user              = useAppSelector((s) => s.auth.user);
   const dispatch          = useAppDispatch();
   const navigate          = useNavigate();
+  
+  const isAdmin = user?.role === 'admin';
+  const NAV_TOOLS = [
+    { label: 'Teams',         icon: Users,       to: ROUTES.TEAMS },
+    { label: 'Tasks',         icon: CheckSquare, to: ROUTES.TASKS },
+    ...(isAdmin ? [{ label: 'Analytics', icon: BarChart2, to: ROUTES.ANALYTICS }] : []),
+    { label: 'Recordings',    icon: Video,       to: ROUTES.RECORDINGS },
+  ];
 
   const handleLogout = () => {
     dispatch(clearAuth());

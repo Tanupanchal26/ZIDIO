@@ -22,7 +22,7 @@ const userSchema = new mongoose.Schema({
   tenantId: { type: mongoose.Schema.Types.ObjectId, ref: 'Tenant', default: null, index: true },
 
   // ── RBAC ───────────────────────────────────────────────────────────────────
-  role: { type: String, enum: ROLE_VALUES, default: ROLES.EMPLOYEE },
+  role: { type: String, enum: ROLE_VALUES, default: ROLES.MEMBER },
 
   // ── Account state ──────────────────────────────────────────────────────────
   status:     { type: String, enum: STATUS_VALUES, default: USER_STATUS.ACTIVE },

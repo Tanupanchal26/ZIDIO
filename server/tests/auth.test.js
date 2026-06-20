@@ -29,7 +29,7 @@ const makeUser = (overrides = {}) => ({
   _id:           new mongoose.Types.ObjectId(),
   name:          'Test User',
   email:         'test@intellmeet.com',
-  role:          ROLES.EMPLOYEE,
+  role:          ROLES.MEMBER,
   status:        USER_STATUS.ACTIVE,
   isVerified:    false,
   loginAttempts: 0,

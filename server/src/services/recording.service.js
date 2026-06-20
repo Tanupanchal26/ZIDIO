@@ -71,3 +71,29 @@ exports.stopRecording = async (recordingId, tenantId) => {
 exports.getRecordings = async (tenantId, ownerId) => {
   return Recording.find({ tenantId, ownerId }).sort({ createdAt: -1 }).populate('meetingId', 'title');
 };
+
+exports.getRecording = async (recordingId, tenantId, ownerId) => {
+  const recording = await Recording.findOne({ _id: recordingId, tenantId, ownerId }).populate('meetingId', 'title');
+  if (!recording) throw ApiError.notFound('Recording not found');
+  return recording;
+};
+
+exports.deleteRecording = async (recordingId, tenantId, ownerId) => {
+  const recording = await Recording.findOne({ _id: recordingId, tenantId, ownerId });
+  if (!recording) throw ApiError.notFound('Recording not found');
+
+  // Delete from Cloudinary if it's hosted there
+  if (recording.url && recording.url.includes('cloudinary.com')) {
+    try {
+      // Extract public_id from secure_url (e.g., https://res.cloudinary.com/.../video/upload/v.../folder/filename.webm)
+      const urlParts = recording.url.split('/');
+      const filename = urlParts[urlParts.length - 1];
+      const publicId = `intellmeet/recordings/${tenantId}/${filename.split('.')[0]}`;
+      await cloudinary.uploader.destroy(publicId, { resource_type: 'video' });
+    } catch (err) {
+      console.error('Failed to delete recording from Cloudinary', err);
+    }
+  }
+
+  await recording.deleteOne();
+};

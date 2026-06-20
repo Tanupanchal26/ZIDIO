@@ -97,7 +97,7 @@ describe('meetingService.updateMeeting', () => {
     meetingRepo.findById.mockResolvedValue(meeting);
     meetingRepo.updateById.mockResolvedValue({ ...meeting, title: 'Updated' });
 
-    const result = await meetingService.updateMeeting(meeting._id, tenantId, hostId, { title: 'Updated' }, ROLES.EMPLOYEE);
+    const result = await meetingService.updateMeeting(meeting._id, tenantId, hostId, { title: 'Updated' }, ROLES.MEMBER);
     expect(meetingRepo.updateById).toHaveBeenCalled();
   });
 
@@ -105,7 +105,7 @@ describe('meetingService.updateMeeting', () => {
     const meeting = makeMeeting();
     meetingRepo.findById.mockResolvedValue(meeting);
 
-    await expect(meetingService.updateMeeting(meeting._id, tenantId, userId, { title: 'X' }, ROLES.EMPLOYEE))
+    await expect(meetingService.updateMeeting(meeting._id, tenantId, userId, { title: 'X' }, ROLES.MEMBER))
       .rejects.toMatchObject({ statusCode: 403 });
   });
 
@@ -113,7 +113,7 @@ describe('meetingService.updateMeeting', () => {
     const meeting = makeMeeting({ status: MEETING_STATUS.ENDED });
     meetingRepo.findById.mockResolvedValue(meeting);
 
-    await expect(meetingService.updateMeeting(meeting._id, tenantId, hostId, { title: 'X' }, ROLES.EMPLOYEE))
+    await expect(meetingService.updateMeeting(meeting._id, tenantId, hostId, { title: 'X' }, ROLES.MEMBER))
       .rejects.toMatchObject({ statusCode: 400 });
   });
 });
@@ -127,7 +127,7 @@ describe('meetingService.deleteMeeting', () => {
     meetingRepo.findById.mockResolvedValue(meeting);
     meetingRepo.deleteById.mockResolvedValue(meeting);
 
-    await meetingService.deleteMeeting(meeting._id, tenantId, hostId, ROLES.EMPLOYEE);
+    await meetingService.deleteMeeting(meeting._id, tenantId, hostId, ROLES.MEMBER);
     expect(meetingRepo.deleteById).toHaveBeenCalled();
   });
 
@@ -135,7 +135,7 @@ describe('meetingService.deleteMeeting', () => {
     const meeting = makeMeeting();
     meetingRepo.findById.mockResolvedValue(meeting);
 
-    await expect(meetingService.deleteMeeting(meeting._id, tenantId, userId, ROLES.EMPLOYEE))
+    await expect(meetingService.deleteMeeting(meeting._id, tenantId, userId, ROLES.MEMBER))
       .rejects.toMatchObject({ statusCode: 403 });
   });
 });

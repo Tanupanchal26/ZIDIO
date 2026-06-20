@@ -66,7 +66,7 @@ const getMeeting = async (meetingId, tenantId, userId) => {
 // ── Update ────────────────────────────────────────────────────────────────────
 const updateMeeting = async (meetingId, tenantId, userId, data, userRole) => {
   const meeting = await meetingRepo.findById(meetingId, tenantId);
-  const isAdminOrAbove = [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.MANAGER].includes(userRole);
+  const isAdminOrAbove = [ROLES.ADMIN].includes(userRole);
   if (meeting.host.toString() !== userId.toString() && !isAdminOrAbove) {
     throw ApiError.forbidden('Only the host or an admin can edit this meeting');
   }

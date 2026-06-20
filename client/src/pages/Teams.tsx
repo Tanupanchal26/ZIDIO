@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Plus, Users, Lock, Hash, Trash2, Settings, ArrowRight } from 'lucide-react';
 import { teamService, type Team } from '../services/team.service';
 import { toTeam } from '../constants';
+import { useAppSelector } from '../hooks/useAppDispatch';
 import Card from '../components/common/Card';
 import Button from '../components/common/Button';
 import Badge from '../components/common/Badge';
@@ -14,6 +15,7 @@ import toast from 'react-hot-toast';
 const Teams = () => {
   const qc = useQueryClient();
   const navigate = useNavigate();
+  const isAdmin = useAppSelector((s) => s.auth.user?.role === 'admin');
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState({ name: '', description: '', isPrivate: false });
 
@@ -48,16 +50,20 @@ const Teams = () => {
           <h1 className="text-2xl font-bold text-[var(--color-text)]">Teams</h1>
           <p className="text-sm text-[var(--color-text-muted)]">{teams.length} team{teams.length !== 1 ? 's' : ''} in your workspace</p>
         </div>
-        <Button onClick={() => setShowCreate(true)} className="gap-2">
-          <Plus size={15} /> New Team
-        </Button>
+        {isAdmin && (
+          <Button onClick={() => setShowCreate(true)} className="gap-2">
+            <Plus size={15} /> New Team
+          </Button>
+        )}
       </div>
 
       {teams.length === 0 ? (
         <Card className="flex flex-col items-center justify-center py-16 gap-4">
           <Users size={40} className="text-[var(--color-text-dim)]" />
-          <p className="text-[var(--color-text-muted)]">No teams yet. Create one to get started.</p>
-          <Button onClick={() => setShowCreate(true)} className="gap-2"><Plus size={14} /> Create Team</Button>
+          <p className="text-[var(--color-text-muted)]">No teams yet.</p>
+          {isAdmin && (
+            <Button onClick={() => setShowCreate(true)} className="gap-2"><Plus size={14} /> Create Team</Button>
+          )}
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -80,12 +86,14 @@ const Teams = () => {
                     <p className="text-xs text-[var(--color-text-dim)]">#{team.slug}</p>
                   </div>
                 </div>
-                <button
-                  onClick={(e) => { e.stopPropagation(); deleteMutation.mutate(team._id); }}
-                  className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg text-[var(--color-text-dim)] hover:text-red-400 hover:bg-red-400/10 transition-all"
-                >
-                  <Trash2 size={14} />
-                </button>
+                {isAdmin && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); deleteMutation.mutate(team._id); }}
+                    className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg text-[var(--color-text-dim)] hover:text-red-400 hover:bg-red-400/10 transition-all"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                )}
               </div>
 
               {team.description && (

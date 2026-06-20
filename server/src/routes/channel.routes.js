@@ -1,14 +1,15 @@
 const router   = require('express').Router();
 const ctrl     = require('../controllers/channel.controller');
-const { protect, scopeTenant } = require('../middleware/auth.middleware');
+const { protect, scopeTenant, authorize } = require('../middleware/auth.middleware');
+const { ROLES } = require('../constants');
 const validate = require('../middleware/validate.middleware');
 const V        = require('../validators/channel.validator');
 
 router.use(protect, scopeTenant());
 
 router.get('/:id',      validate(V.channelParam), ctrl.getChannel);
-router.put('/:id',      validate(V.updateChannel), ctrl.updateChannel);
-router.delete('/:id',   validate(V.channelParam), ctrl.archiveChannel);
+router.put('/:id',      authorize(ROLES.ADMIN), validate(V.updateChannel), ctrl.updateChannel);
+router.delete('/:id',   authorize(ROLES.ADMIN), validate(V.channelParam), ctrl.archiveChannel);
 
 // Messages
 router.get('/:id/messages',              validate(V.listMessages), ctrl.getMessages);

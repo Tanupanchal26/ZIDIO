@@ -24,8 +24,8 @@ const signup = {
     email:    Joi.string().email().lowercase().required(),
     password: passwordRules,
     role:     Joi.string()
-              .valid(ROLES.EMPLOYEE, ROLES.GUEST)   // only safe roles on self-signup
-              .default(ROLES.EMPLOYEE),
+              .valid(ROLES.MEMBER)   // only safe roles on self-signup
+              .default(ROLES.MEMBER),
   }),
 };
 

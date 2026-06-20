@@ -123,7 +123,7 @@ exports.scopeTenant = (field = 'tenantId') => (req, res, next) => {
  */
 exports.verifyOwnerOrAdmin = (req, res, next) => {
   const isOwner = req.user._id.toString() === req.params.id;
-  const isAdmin = [ROLES.SUPER_ADMIN, ROLES.ADMIN].includes(req.user.role);
+  const isAdmin = [ROLES.ADMIN].includes(req.user.role);
   if (!isOwner && !isAdmin) {
     throw ApiError.forbidden('You can only access your own resources');
   }

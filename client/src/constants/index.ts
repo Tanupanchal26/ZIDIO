@@ -19,6 +19,8 @@ export const ROUTES = {
   TEAM:            '/teams/:id',
   CHANNELS:        '/teams/:teamId/channels/:channelId',
   NOTIFICATIONS:   '/notifications',
+  RECORDINGS:      '/recordings',
+  RECORDING_DETAIL:'/recordings/:id',
   NOT_FOUND:       '*',
 } as const;
 
@@ -36,11 +38,8 @@ export const SOCKET_URL    = ((import.meta as any).env?.VITE_SOCKET_URL   as str
 
 // ── Roles ─────────────────────────────────────────────────────────────────────
 export const ROLES = {
-  SUPER_ADMIN: 'super_admin',
-  ADMIN:       'admin',
-  MANAGER:     'manager',
-  EMPLOYEE:    'employee',
-  GUEST:       'guest',
+  ADMIN:  'admin',
+  MEMBER: 'member',
 } as const;
 
 export type Role = typeof ROLES[keyof typeof ROLES];

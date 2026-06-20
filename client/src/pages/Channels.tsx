@@ -329,6 +329,7 @@ const Channels = () => {
   const navigate  = useNavigate();
   const qc        = useQueryClient();
   const { unreadCounts } = useChatStore();
+  const isAdmin = useAppSelector((s) => s.auth.user?.role === 'admin');
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState({ name: '', description: '', type: 'public' as 'public' | 'private' | 'announcement' });
 
@@ -445,9 +446,11 @@ const Channels = () => {
         <div className="flex-1 overflow-y-auto p-2 scrollbar-thin">
           <div className="flex items-center justify-between px-2.5 py-1.5 mb-1">
             <span className="text-[10px] font-bold text-[var(--color-text-secondary)] uppercase tracking-wider">Channels</span>
-            <button onClick={() => setShowCreate(true)} className="p-1 rounded-lg hover:bg-black/5 text-[var(--color-text-secondary)] hover:text-[var(--color-text)] transition-colors cursor-pointer">
-              <Plus size={13} />
-            </button>
+            {isAdmin && (
+              <button onClick={() => setShowCreate(true)} className="p-1 rounded-lg hover:bg-black/5 text-[var(--color-text-secondary)] hover:text-[var(--color-text)] transition-colors cursor-pointer">
+                <Plus size={13} />
+              </button>
+            )}
           </div>
 
           <div className="flex flex-col gap-0.5">
@@ -493,8 +496,10 @@ const Channels = () => {
         ) : (
           <div className="flex flex-col items-center justify-center flex-1 gap-3 text-center opacity-70">
             <Hash size={36} className="text-[var(--color-text-dim)]" />
-            <p className="text-[var(--color-text-muted)] text-sm font-semibold">Select or create a channel</p>
-            <Button onClick={() => setShowCreate(true)} className="gap-2"><Plus size={14} /> Create Channel</Button>
+            <p className="text-[var(--color-text-muted)] text-sm font-semibold">Select a channel</p>
+            {isAdmin && (
+              <Button onClick={() => setShowCreate(true)} className="gap-2"><Plus size={14} /> Create Channel</Button>
+            )}
           </div>
         )}
       </main>

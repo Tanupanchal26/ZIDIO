@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect, useState } from 'react';
 import { Routes, Route, useLocation, Navigate, useNavigate } from 'react-router-dom';
-import { ProtectedRoute, PublicRoute } from './ProtectedRoute';
+import { ProtectedRoute, PublicRoute, RoleProtectedRoute } from './ProtectedRoute';
 import AppLayout from '../components/layout/AppLayout';
 import Loader from '../components/common/Loader';
 import { ROUTES } from '../constants';
@@ -23,6 +23,8 @@ const AISummary      = lazy(() => import('../pages/AISummary'));
 const Teams          = lazy(() => import('../pages/Teams'));
 const Channels       = lazy(() => import('../pages/Channels'));
 const Notifications  = lazy(() => import('../pages/Notifications'));
+const Recordings     = lazy(() => import('../pages/Recordings'));
+const RecordingDetail = lazy(() => import('../pages/RecordingDetail'));
 const NotFound       = lazy(() => import('../pages/NotFound'));
 const GoogleAuthSuccess = lazy(() => import('../pages/GoogleAuthSuccess'));
 
@@ -81,8 +83,14 @@ const AppRoutes = () => {
             path={ROUTES.DASHBOARD}
             element={<Suspense fallback={<PageFallback />}><Dashboard /></Suspense>}
           />
+          <Route path={ROUTES.DASHBOARD}     element={<Suspense fallback={<PageFallback />}><Dashboard /></Suspense>} />
           <Route path={ROUTES.LOBBY}         element={<Suspense fallback={<PageFallback />}><Lobby /></Suspense>} />
-          <Route path={ROUTES.ANALYTICS}     element={<Suspense fallback={<PageFallback />}><Analytics /></Suspense>} />
+          
+          {/* Admin only route */}
+          <Route element={<RoleProtectedRoute allowedRoles={['admin']} />}>
+            <Route path={ROUTES.ANALYTICS}   element={<Suspense fallback={<PageFallback />}><Analytics /></Suspense>} />
+          </Route>
+
           <Route path={ROUTES.TASKS}         element={<Suspense fallback={<PageFallback />}><Tasks /></Suspense>} />
           <Route path={ROUTES.SETTINGS}      element={<Suspense fallback={<PageFallback />}><Settings /></Suspense>} />
           <Route path={ROUTES.PROFILE}       element={<Suspense fallback={null}><RedirectProfileToSettings /></Suspense>} />
@@ -92,6 +100,8 @@ const AppRoutes = () => {
           <Route path={ROUTES.CHANNELS}      element={<Suspense fallback={<PageFallback />}><Channels /></Suspense>} />
           <Route path="/channels"            element={<Suspense fallback={<PageFallback />}><Channels /></Suspense>} />
           <Route path={ROUTES.NOTIFICATIONS} element={<Suspense fallback={<PageFallback />}><Notifications /></Suspense>} />
+          <Route path={ROUTES.RECORDINGS}    element={<Suspense fallback={<PageFallback />}><Recordings /></Suspense>} />
+          <Route path={ROUTES.RECORDING_DETAIL} element={<Suspense fallback={<PageFallback />}><RecordingDetail /></Suspense>} />
         </Route>
 
         {/* MeetingRoom — full-screen, outside AppLayout, isolated chunk */}

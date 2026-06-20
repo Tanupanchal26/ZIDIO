@@ -13,3 +13,13 @@ export const PublicRoute = () => {
   const isAuthenticated = useAppSelector((s) => s.auth.isAuthenticated);
   return !isAuthenticated ? <Outlet /> : <Navigate to={ROUTES.DASHBOARD} replace />;
 };
+
+/** Restricts access to specific roles. Redirects to Dashboard if denied. */
+export const RoleProtectedRoute = ({ allowedRoles }: { allowedRoles: string[] }) => {
+  const { isAuthenticated, user } = useAppSelector((s) => s.auth);
+  if (!isAuthenticated) return <Navigate to={ROUTES.LOGIN} replace />;
+  if (!user?.role || !allowedRoles.includes(user.role)) {
+    return <Navigate to={ROUTES.DASHBOARD} replace />;
+  }
+  return <Outlet />;
+};

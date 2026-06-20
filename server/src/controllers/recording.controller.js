@@ -33,3 +33,15 @@ exports.listRecordings = asyncHandler(async (req, res) => {
   const recordings = await recordingService.getRecordings(req.tenantId, req.user._id);
   res.status(200).json({ success: true, data: recordings });
 });
+
+exports.getRecording = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const recording = await recordingService.getRecording(id, req.tenantId, req.user._id);
+  res.status(200).json({ success: true, data: recording });
+});
+
+exports.deleteRecording = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  await recordingService.deleteRecording(id, req.tenantId, req.user._id);
+  res.status(200).json({ success: true, data: {} });
+});
