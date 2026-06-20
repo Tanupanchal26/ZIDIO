@@ -1,0 +1,15 @@
+const router = require('express').Router();
+
+router.use('/auth/google',   require('../googleAuth.routes'));
+router.use('/auth',          require('../auth.routes'));
+router.use('/users',         require('../user.routes'));
+router.use('/meetings',      require('../meeting.routes'));
+router.use('/teams',         require('../team.routes'));
+router.use('/channels',      require('../channel.routes'));
+router.use('/notifications', require('../notification.routes'));
+router.use('/chat',          require('../chat.routes'));
+router.use('/ai',            require('../ai.routes'));
+router.use('/tasks',         require('../task.routes'));
+router.use('/tenants',       require('../tenant.routes'));
+
+module.exports = router;

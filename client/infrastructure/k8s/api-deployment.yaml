@@ -1,0 +1,191 @@
+# ── API Deployment ─────────────────────────────────────────────────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: intellmeet-api
+  namespace: intellmeet
+  labels:
+    app: intellmeet-api
+    tier: backend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: intellmeet-api
+  template:
+    metadata:
+      labels:
+        app: intellmeet-api
+        tier: backend
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+      terminationGracePeriodSeconds: 30
+      containers:
+        - name: api
+          image: <ECR_URI>/intellmeet-backend:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 5000
+          envFrom:
+            - secretRef:
+                name: intellmeet-secrets
+          env:
+            - name: NODE_ENV
+              value: production
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 5000
+            initialDelaySeconds: 15
+            periodSeconds: 20
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 5000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            failureThreshold: 3
+          startupProbe:
+            httpGet:
+              path: /health
+              port: 5000
+            failureThreshold: 30
+            periodSeconds: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: intellmeet-api-svc
+  namespace: intellmeet
+spec:
+  selector:
+    app: intellmeet-api
+  ports:
+    - port: 80
+      targetPort: 5000
+---
+# ── Frontend Deployment ────────────────────────────────────────────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: intellmeet-web
+  namespace: intellmeet
+  labels:
+    app: intellmeet-web
+    tier: frontend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: intellmeet-web
+  template:
+    metadata:
+      labels:
+        app: intellmeet-web
+        tier: frontend
+    spec:
+      containers:
+        - name: web
+          image: <ECR_URI>/intellmeet-frontend:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 80
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "200m"
+              memory: "256Mi"
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: intellmeet-web-svc
+  namespace: intellmeet
+spec:
+  selector:
+    app: intellmeet-web
+  ports:
+    - port: 80
+      targetPort: 80
+---
+# ── HPA — API ──────────────────────────────────────────────────────────────────
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: intellmeet-api-hpa
+  namespace: intellmeet
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: intellmeet-api
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
+---
+# ── Namespace ──────────────────────────────────────────────────────────────────
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: intellmeet
+---
+# ── Secrets Template (values injected by CI/CD, never committed) ───────────────
+# kubectl create secret generic intellmeet-secrets \
+#   --from-literal=MONGO_URI=<value> \
+#   --from-literal=REDIS_URL=<value> \
+#   --from-literal=JWT_SECRET=<value> \
+#   --from-literal=JWT_REFRESH_SECRET=<value> \
+#   --from-literal=OPENAI_API_KEY=<value> \
+#   -n intellmeet
+apiVersion: v1
+kind: Secret
+metadata:
+  name: intellmeet-secrets
+  namespace: intellmeet
+type: Opaque
+# data values are base64-encoded — replace with sealed-secrets or external-secrets in production
+stringData:
+  MONGO_URI: "<inject-from-secrets-manager>"
+  REDIS_URL: "<inject-from-secrets-manager>"
+  JWT_SECRET: "<inject-from-secrets-manager>"
+  JWT_REFRESH_SECRET: "<inject-from-secrets-manager>"
+  OPENAI_API_KEY: "<inject-from-secrets-manager>"
+  CLOUDINARY_CLOUD_NAME: "<inject-from-secrets-manager>"
+  CLOUDINARY_API_KEY: "<inject-from-secrets-manager>"
+  CLOUDINARY_API_SECRET: "<inject-from-secrets-manager>"
