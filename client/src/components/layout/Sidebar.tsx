@@ -72,7 +72,6 @@ const Sidebar = () => {
   
   const isAdmin = user?.role === 'admin' || user?.role === 'super_admin';
   const NAV_TOOLS = [
-    { label: 'Teams',         icon: Users,       to: ROUTES.TEAMS },
     { label: 'Tasks',         icon: CheckSquare, to: ROUTES.TASKS },
     ...(isAdmin ? [{ label: 'Analytics', icon: BarChart2, to: ROUTES.ANALYTICS }] : []),
     { label: 'Recordings',    icon: Video,       to: ROUTES.RECORDINGS },
