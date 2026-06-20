@@ -17,7 +17,8 @@ exports.authenticate = asyncHandler(async (req, res, next) => {
   const header = req.headers.authorization;
   const token  =
     (header?.startsWith('Bearer ') ? header.split(' ')[1] : null) ||
-    req.headers['x-access-token'];
+    req.headers['x-access-token'] ||
+    req.query.token;
 
   if (!token) throw ApiError.unauthorized('Access token required');
 

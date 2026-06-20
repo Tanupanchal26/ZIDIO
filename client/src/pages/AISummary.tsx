@@ -110,11 +110,11 @@ const AISummary = () => {
   };
 
   const handleExportPDF = () => {
-    if (selectedId) exportService.downloadPDF(selectedId, token);
+    if (selectedId) exportService.downloadSummaryPDF(selectedId, token);
   };
   
   const handleExportCSV = () => {
-    if (selectedId) exportService.downloadCSV(selectedId, token);
+    if (selectedId) exportService.downloadActionItemsCSV(selectedId, token);
   };
 
   const displaySummary = aiResult?.summary || store.summary;

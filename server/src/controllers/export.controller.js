@@ -1,21 +1,28 @@
-const { generatePDF, generateCSV } = require('../services/export.service');
+const exportService = require('../services/export.service');
 const asyncHandler = require('../utils/asyncHandler');
-const ApiError = require('../utils/ApiError');
 
-exports.exportPDF = asyncHandler(async (req, res) => {
-  const { id } = req.params;
-  const pdfBuffer = await generatePDF(id, req.tenantId);
-  
+exports.exportSummaryPDF = asyncHandler(async (req, res) => {
+  const { meetingId } = req.params;
+  const pdfBuffer = await exportService.generateSummaryPDF(meetingId, req.tenantId);
+
   res.setHeader('Content-Type', 'application/pdf');
-  res.setHeader('Content-Disposition', `attachment; filename=meeting-${id}.pdf`);
+  res.setHeader('Content-Disposition', `attachment; filename=meeting-summary-${meetingId}.pdf`);
   res.status(200).send(pdfBuffer);
 });
 
-exports.exportCSV = asyncHandler(async (req, res) => {
-  const { id } = req.params;
-  const csvBuffer = await generateCSV(id, req.tenantId);
-  
+exports.exportActionItemsCSV = asyncHandler(async (req, res) => {
+  const { meetingId } = req.params;
+  const csvString = await exportService.generateActionItemsCSV(meetingId, req.tenantId);
+
   res.setHeader('Content-Type', 'text/csv');
-  res.setHeader('Content-Disposition', `attachment; filename=action-items-${id}.csv`);
-  res.status(200).send(csvBuffer);
+  res.setHeader('Content-Disposition', `attachment; filename=action-items-${meetingId}.csv`);
+  res.status(200).send(csvString);
+});
+
+exports.exportAnalyticsCSV = asyncHandler(async (req, res) => {
+  const csvString = await exportService.generateAnalyticsCSV(req.tenantId, req.user._id);
+
+  res.setHeader('Content-Type', 'text/csv');
+  res.setHeader('Content-Disposition', `attachment; filename=analytics-report.csv`);
+  res.status(200).send(csvString);
 });

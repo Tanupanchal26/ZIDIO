@@ -1,10 +1,12 @@
 import { useQuery } from '@tanstack/react-query';
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { motion } from 'framer-motion';
-import { TrendingUp, TrendingDown, Loader2 } from 'lucide-react';
+import { TrendingUp, TrendingDown, Loader2, Download } from 'lucide-react';
 import Badge from '../components/common/Badge';
 import Card from '../components/common/Card';
+import Button from '../components/common/Button';
 import { analyticsService } from '../services/analytics.service';
+import { exportService } from '../services/export.service';
 
 const TP = ({ active, payload, label }: any) => active && payload?.length ? (
   <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl px-3.5 py-2.5 shadow-md text-[12px] backdrop-blur-md">
@@ -25,6 +27,11 @@ const Analytics = () => {
     queryFn: () => analyticsService.getAnalytics().then(res => res.data),
   });
 
+  const handleExportAnalytics = () => {
+    const token = localStorage.getItem('im_access_token') || localStorage.getItem('token') || '';
+    exportService.downloadAnalyticsCSV(token);
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-full min-h-[400px]">
@@ -41,9 +48,18 @@ const Analytics = () => {
 
   return (
     <div className="flex flex-col gap-6 font-sans text-[var(--color-text)]">
-      <motion.div {...fu(0)}>
-        <h1 className="text-[1.375rem] font-bold text-[var(--color-text)] tracking-tight">Analytics</h1>
-        <p className="text-[13px] text-[var(--color-text-secondary)] mt-0.5 font-medium">Team performance and engagement insights</p>
+      <motion.div {...fu(0)} className="flex items-center justify-between gap-4 flex-wrap">
+        <div>
+          <h1 className="text-[1.375rem] font-bold text-[var(--color-text)] tracking-tight">Analytics</h1>
+          <p className="text-[13px] text-[var(--color-text-secondary)] mt-0.5 font-medium">Team performance and engagement insights</p>
+        </div>
+        <Button
+          size="sm"
+          leftIcon={<Download size={12} />}
+          onClick={handleExportAnalytics}
+        >
+          Export CSV
+        </Button>
       </motion.div>
 
       {/* KPI Row */}

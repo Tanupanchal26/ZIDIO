@@ -4,7 +4,8 @@ const { authenticate, scopeTenant } = require('../middleware/auth.middleware');
 
 router.use(authenticate, scopeTenant('tenantId'));
 
-router.get('/:id/pdf', exportController.exportPDF);
-router.get('/:id/csv', exportController.exportCSV);
+router.get('/summary/:meetingId', exportController.exportSummaryPDF);
+router.get('/action-items/:meetingId', exportController.exportActionItemsCSV);
+router.get('/analytics', exportController.exportAnalyticsCSV);
 
 module.exports = router;
