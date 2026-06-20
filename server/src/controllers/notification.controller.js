@@ -4,7 +4,14 @@ const asyncHandler  = require('../utils/asyncHandler');
 
 exports.getNotifications = asyncHandler(async (req, res) => {
   const result = await notifService.getUserNotifications(req.user._id, req.query);
-  ApiResponse.paginated(res, result.data, result);
+  ApiResponse.ok(res, { data: result.data, unread: result.unread }, 'Success', {
+    page: result.page,
+    limit: result.limit,
+    total: result.total,
+    totalPages: Math.ceil(result.total / result.limit),
+    hasNext: result.page * result.limit < result.total,
+    hasPrev: result.page > 1
+  });
 });
 
 exports.markRead = asyncHandler(async (req, res) => {

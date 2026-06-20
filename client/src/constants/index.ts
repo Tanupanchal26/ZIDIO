@@ -21,6 +21,7 @@ export const ROUTES = {
   NOTIFICATIONS:   '/notifications',
   RECORDINGS:      '/recordings',
   RECORDING_DETAIL:'/recordings/:id',
+  MEDIA:           '/media',
   NOT_FOUND:       '*',
 } as const;
 

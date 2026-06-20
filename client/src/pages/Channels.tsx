@@ -67,7 +67,7 @@ const ChannelView = ({ channel }: { channel: Channel }) => {
   const { isLoading } = useQuery({
     queryKey: ['messages', channel._id],
     queryFn: () => channelService.getMessages(channel._id).then((r: any) => {
-      const msgs: ChannelMessage[] = r.data?.data ?? [];
+      const msgs: ChannelMessage[] = r.data?.data ?? r.data ?? [];
       store.initChannel(channel._id, msgs);
       return msgs;
     }),
@@ -329,7 +329,10 @@ const Channels = () => {
   const navigate  = useNavigate();
   const qc        = useQueryClient();
   const { unreadCounts } = useChatStore();
-  const isAdmin = useAppSelector((s) => s.auth.user?.role === 'admin');
+  const isAdmin = useAppSelector((s) => {
+    const role = s.auth.user?.role;
+    return role === 'admin' || role === 'super_admin';
+  });
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState({ name: '', description: '', type: 'public' as 'public' | 'private' | 'announcement' });
 

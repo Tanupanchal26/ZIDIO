@@ -69,7 +69,13 @@ exports.protect = exports.authenticate;
  */
 exports.authorize = (...roles) => (req, res, next) => {
   if (!req.user) throw ApiError.unauthorized('Not authenticated');
-  if (!roles.includes(req.user.role)) {
+  
+  const allowedRoles = [...roles];
+  if (roles.includes('admin') && !allowedRoles.includes('super_admin')) {
+    allowedRoles.push('super_admin');
+  }
+
+  if (!allowedRoles.includes(req.user.role)) {
     throw ApiError.forbidden(
       `Role '${req.user.role}' does not have permission for this action`
     );
@@ -124,7 +130,7 @@ exports.scopeTenant = (field = 'tenantId') => (req, res, next) => {
  */
 exports.verifyOwnerOrAdmin = (req, res, next) => {
   const isOwner = req.user._id.toString() === req.params.id;
-  const isAdmin = [ROLES.ADMIN].includes(req.user.role);
+  const isAdmin = [ROLES.ADMIN, 'super_admin'].includes(req.user.role);
   if (!isOwner && !isAdmin) {
     throw ApiError.forbidden('You can only access your own resources');
   }

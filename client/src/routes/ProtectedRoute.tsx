@@ -18,7 +18,13 @@ export const PublicRoute = () => {
 export const RoleProtectedRoute = ({ allowedRoles }: { allowedRoles: string[] }) => {
   const { isAuthenticated, user } = useAppSelector((s) => s.auth);
   if (!isAuthenticated) return <Navigate to={ROUTES.LOGIN} replace />;
-  if (!user?.role || !allowedRoles.includes(user.role)) {
+  
+  const effectiveRoles = [...allowedRoles];
+  if (allowedRoles.includes('admin') && !allowedRoles.includes('super_admin')) {
+    effectiveRoles.push('super_admin');
+  }
+
+  if (!user?.role || !effectiveRoles.includes(user.role)) {
     return <Navigate to={ROUTES.DASHBOARD} replace />;
   }
   return <Outlet />;

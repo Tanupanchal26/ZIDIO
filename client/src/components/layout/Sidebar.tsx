@@ -2,7 +2,7 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard, Video, Brain, CheckSquare, BarChart2,
-  Settings, LogOut, Users, Bell, Hash, Search
+  Settings, LogOut, Users, Bell, Hash, Search, FolderOpen
 } from 'lucide-react';
 import { useAppSelector, useAppDispatch } from '../../hooks/useAppDispatch';
 import { setMobileSidebar, toggleSidebar } from '../../store/slices/uiSlice';
@@ -70,12 +70,14 @@ const Sidebar = () => {
   const dispatch          = useAppDispatch();
   const navigate          = useNavigate();
   
-  const isAdmin = user?.role === 'admin';
+  const isAdmin = user?.role === 'admin' || user?.role === 'super_admin';
   const NAV_TOOLS = [
     { label: 'Teams',         icon: Users,       to: ROUTES.TEAMS },
     { label: 'Tasks',         icon: CheckSquare, to: ROUTES.TASKS },
     ...(isAdmin ? [{ label: 'Analytics', icon: BarChart2, to: ROUTES.ANALYTICS }] : []),
     { label: 'Recordings',    icon: Video,       to: ROUTES.RECORDINGS },
+    { label: 'Notifications', icon: Bell,        to: ROUTES.NOTIFICATIONS },
+    { label: 'Media Library', icon: FolderOpen,  to: ROUTES.MEDIA },
   ];
 
   const handleLogout = () => {

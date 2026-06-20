@@ -25,9 +25,9 @@ const Lobby = () => {
   // Wire to real meeting service
   const { data: meetingsResponse, isLoading } = useQuery({
     queryKey: ['meetings'],
-    queryFn: () => meetingService.getAll({ limit: 10 }).then((r: any) => r.data),
+    queryFn: () => meetingService.getAll({ limit: 10 }).then((r: any) => r.data?.data ?? r.data ?? []),
   });
-  const meetings = meetingsResponse?.data || [];
+  const meetings = meetingsResponse || [];
 
   const createMutation = useMutation({
     mutationFn: () => meetingService.create({ title: title || 'Quick Meeting' }) as Promise<any>,

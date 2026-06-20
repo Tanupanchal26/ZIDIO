@@ -14,5 +14,6 @@ router.use('/tenants',       require('../tenant.routes'));
 router.use('/analytics',     require('../analytics.routes'));
 router.use('/export',        require('../export.routes'));
 router.use('/recordings',    require('../recording.routes'));
+router.use('/media',         require('../media.routes'));
 
 module.exports = router;
