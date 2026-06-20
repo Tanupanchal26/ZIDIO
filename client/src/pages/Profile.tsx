@@ -6,8 +6,8 @@ import Button from '../components/common/Button';
 import Badge from '../components/common/Badge';
 import { Save, Video, Brain, CheckSquare, LogOut } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { clearAuth } from '../store/slices/authSlice';
-import { authService } from '../services/auth.service';
+import { clearAuth } from '../store/auth/auth.slice';
+import { authService } from '../api/auth.api';
 import { ROUTES, STORAGE_KEYS } from '../constants';
 
 const Profile = () => {

@@ -1,4 +1,4 @@
-import api from './api';
+import api from './axios';
 
 export interface TeamMember {
   user: { _id: string; name: string; email: string; avatar?: string };

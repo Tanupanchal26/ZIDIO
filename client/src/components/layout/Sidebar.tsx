@@ -5,8 +5,8 @@ import {
   Settings, LogOut, Users, Bell, Hash, Search, FolderOpen
 } from 'lucide-react';
 import { useAppSelector, useAppDispatch } from '../../hooks/useAppDispatch';
-import { setMobileSidebar, toggleSidebar } from '../../store/slices/uiSlice';
-import { clearAuth } from '../../store/slices/authSlice';
+import { setMobileSidebar, toggleSidebar } from '../../store/ui/ui.slice';
+import { clearAuth } from '../../store/auth/auth.slice';
 import { ROUTES, STORAGE_KEYS } from '../../constants';
 import { clsx } from 'clsx';
 import toast from 'react-hot-toast';

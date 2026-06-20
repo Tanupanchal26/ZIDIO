@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAppDispatch } from '../hooks/useAppDispatch';
-import { setCredentials } from '../store/slices/authSlice';
+import { setCredentials } from '../store/auth/auth.slice';
 import toast from 'react-hot-toast';
 import { ROUTES, STORAGE_KEYS } from '../constants';
 

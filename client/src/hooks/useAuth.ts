@@ -1,5 +1,5 @@
-import { useAuthStore } from '../store/auth.store';
-import { authService } from '../services/auth.service';
+import { useAuthStore } from '../store/auth/auth.store';
+import { authService } from '../api/auth.api';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { ROUTES } from '../utils/constants';

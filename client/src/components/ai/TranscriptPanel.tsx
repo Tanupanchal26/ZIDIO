@@ -1,4 +1,4 @@
-import { useAIStore } from '../../store/ai.store';
+import { useAIStore } from '../../store/ai/ai.store';
 import { Mic, MicOff } from 'lucide-react';
 import { clsx } from 'clsx';
 

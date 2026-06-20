@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Download, Trash2, Calendar, Clock, HardDrive } from 'lucide-react';
-import { recordingService } from '../services/recording.service';
+import { recordingService } from '../api/recording.api';
 import Loader from '../components/common/Loader';
 import toast from 'react-hot-toast';
 

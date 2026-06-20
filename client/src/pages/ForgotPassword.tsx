@@ -2,7 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { Mail, Video, ArrowLeft, CheckCircle } from 'lucide-react';
 import { ROUTES } from '../constants';
-import axiosClient from '../api/axiosClient';
+import axiosClient from '../api/axios';
 import Logo from '../components/common/Logo';
 
 const ForgotPassword = () => {

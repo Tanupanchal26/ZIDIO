@@ -1,8 +1,8 @@
 import { useEffect, useCallback } from 'react';
 import { useSocket } from './useSocket';
-import { useAIStore } from '../store/ai.store';
-import { aiService } from '../services/ai.service';
-import type { ActionItem } from '../services/ai.service';
+import { useAIStore } from '../store/ai/ai.store';
+import { aiService } from '../api/ai.api';
+import type { ActionItem } from '../api/ai.api';
 import toast from 'react-hot-toast';
 
 export const useAI = (meetingId: string) => {

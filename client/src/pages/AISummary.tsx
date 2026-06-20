@@ -7,9 +7,9 @@ import {
 } from 'lucide-react';
 import Button from '../components/common/Button';
 import Badge from '../components/common/Badge';
-import { aiService } from '../services/ai.service';
-import { exportService } from '../services/export.service';
-import { useAIStore } from '../store/ai.store';
+import { aiService } from '../api/ai.api';
+import { exportService } from '../api/export.api';
+import { useAIStore } from '../store/ai/ai.store';
 import { useAppSelector } from '../hooks/useAppDispatch';
 import { clsx } from 'clsx';
 import toast from 'react-hot-toast';
@@ -47,7 +47,7 @@ const AISummary = () => {
   const { data: meetingData, isLoading } = useQuery({
     queryKey: ['meetings-ai'],
     queryFn: () =>
-      import('../services/meeting.service').then((m) =>
+      import('../api/meeting.api').then((m) =>
         m.meetingService.getAll({ limit: 30, status: 'ended' }).then((r: any) => r?.data ?? r ?? [])
       ),
     staleTime: 60_000,

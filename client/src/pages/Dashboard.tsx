@@ -11,7 +11,7 @@ import { motion as ds } from '../design-system/motion';
 import { clsx } from 'clsx';
 import { PageContainer } from '../components/layout/PageContainer';
 import { PageHeader } from '../components/layout/PageHeader';
-import { analyticsService } from '../services/analytics.service';
+import { analyticsService } from '../api/analytics.api';
 import './Dashboard.css';
 
 const fu = ds.fadeInUp;

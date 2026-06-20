@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { ActionItem, SearchResult } from '../services/ai.service';
+import type { ActionItem, SearchResult } from '../../api/ai.api';
 
 export type { ActionItem };
 

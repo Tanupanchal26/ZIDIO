@@ -3,9 +3,9 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Video } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { ROUTES } from '../constants';
-import { setCredentials } from '../store/slices/authSlice';
+import { setCredentials } from '../store/auth/auth.slice';
 import { useAppDispatch } from '../hooks/useAppDispatch';
-import axiosClient from '../api/axiosClient';
+import axiosClient from '../api/axios';
 import GoogleLoginButton from '../components/common/GoogleLoginButton';
 import Logo from '../components/common/Logo';
 

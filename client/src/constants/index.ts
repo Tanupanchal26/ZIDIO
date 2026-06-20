@@ -34,8 +34,8 @@ export const toVerifyEmail   = (token: string) => `/verify-email/${token}`;
 
 // Keep backwards compat alias used in older files
 export const MEETING_ROUTE = toMeeting;
-export const API_BASE_URL  = ((import.meta as any).env?.VITE_API_BASE_URL as string) || 'http://localhost:5000/api/v1';
-export const SOCKET_URL    = ((import.meta as any).env?.VITE_SOCKET_URL   as string) || 'http://localhost:5000';
+export const API_BASE_URL  = ((import.meta as any).env?.VITE_API_BASE_URL as string) || 'http://127.0.0.1:5000/api/v1';
+export const SOCKET_URL    = ((import.meta as any).env?.VITE_SOCKET_URL   as string) || 'http://127.0.0.1:5000';
 
 // ── Roles ─────────────────────────────────────────────────────────────────────
 export const ROLES = {

@@ -1,2 +1,2 @@
 // Root routes.tsx — delegates to the routes/ folder
-export { default } from './routes/index';
+export { default } from './app/router';

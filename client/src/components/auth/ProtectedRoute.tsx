@@ -1,6 +1,6 @@
 import { Navigate, Outlet } from 'react-router-dom';
-import { useAppSelector } from '../hooks/useAppDispatch';
-import { ROUTES } from '../constants';
+import { useAppSelector } from '../../hooks/useAppDispatch';
+import { ROUTES } from '../../constants';
 
 /** Redirects unauthenticated users to the public home page. */
 export const ProtectedRoute = () => {

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, Calendar, Video, Play, Trash2, Download } from 'lucide-react';
-import { recordingService } from '../services/recording.service';
+import { recordingService } from '../api/recording.api';
 import Loader from '../components/common/Loader';
 import toast from 'react-hot-toast';
 

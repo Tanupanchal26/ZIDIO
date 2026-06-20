@@ -16,9 +16,9 @@ import TranscriptPanel from '../components/ai/TranscriptPanel';
 import SummaryCard from '../components/ai/SummaryCard';
 import ActionItems from '../components/ai/ActionItems';
 import AIAssistant from '../components/ai/AIAssistant';
-import { useMeetingStore } from '../store/meeting.store';
+import { useMeetingStore } from '../store/meeting/meeting.store';
 import { useWebRTC } from '../hooks/useWebRTC';
-import { useAuthStore } from '../store/auth.store';
+import { useAuthStore } from '../store/auth/auth.store';
 import { useFocusTrap } from '../hooks/useFocusTrap';
 
 import Badge from '../components/common/Badge';

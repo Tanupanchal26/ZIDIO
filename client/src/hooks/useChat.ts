@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useSocket, safeEmit } from './useSocket';
-import { useChatStore } from '../store/chat.store';
-import type { ChatMessage } from '../store/chat.store';
+import { useChatStore } from '../store/chat/chat.store';
+import type { ChatMessage } from '../store/chat/chat.store';
 
 export const useChat = (meetingId: string) => {
   const { socket } = useSocket();

@@ -1,5 +1,5 @@
 import { Monitor, X } from 'lucide-react';
-import { useMeetingStore } from '../../store/meeting.store';
+import { useMeetingStore } from '../../store/meeting/meeting.store';
 
 const ScreenShare = () => {
   const { isScreenSharing, toggleScreenShare } = useMeetingStore();

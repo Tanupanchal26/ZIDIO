@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { useMeetingStore } from '../store/meeting.store';
+import { useMeetingStore } from '../store/meeting/meeting.store';
 import { getSocket } from '../utils/socket';
 
 interface WebRTCConfig { roomId: string; userId: string; }

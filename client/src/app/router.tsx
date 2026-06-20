@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect, useState } from 'react';
 import { Routes, Route, useLocation, Navigate, useNavigate } from 'react-router-dom';
-import { ProtectedRoute, PublicRoute, RoleProtectedRoute } from './ProtectedRoute';
+import { ProtectedRoute, PublicRoute, RoleProtectedRoute } from '../components/auth/ProtectedRoute';
+import RedirectProfileToSettings from '../components/auth/RedirectProfileToSettings';
 import AppLayout from '../components/layout/AppLayout';
 import Loader from '../components/common/Loader';
 import { ROUTES } from '../constants';
@@ -12,7 +13,7 @@ const Signup         = lazy(() => import('../pages/Signup'));
 const ForgotPassword = lazy(() => import('../pages/ForgotPassword'));
 const ResetPassword  = lazy(() => import('../pages/ResetPassword'));
 const Dashboard      = lazy(() => import('../pages/Dashboard'));
-const RedirectProfileToSettings = lazy(() => import('./RedirectProfileToSettings'));
+
 const Settings       = lazy(() => import('../pages/Settings'));
 const Lobby          = lazy(() => import('../pages/Lobby'));
 // MeetingRoom in its own chunk — largest bundle, only needed inside a call

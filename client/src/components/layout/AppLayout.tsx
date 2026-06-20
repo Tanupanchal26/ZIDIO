@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import Sidebar from './Sidebar';
 import TopBar from './Navbar';
 import { useAppSelector, useAppDispatch } from '../../hooks/useAppDispatch';
-import { setMobileSidebar } from '../../store/slices/uiSlice';
+import { setMobileSidebar } from '../../store/ui/ui.slice';
 import { motion as m } from '../../design-system/motion';
 
 const PAGE_TITLES: Record<string, string> = {

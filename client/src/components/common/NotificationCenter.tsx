@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Bell, Check, X, CheckCheck, Video, Users, AtSign, CheckSquare, Info } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useSocket } from '../../hooks/useSocket';
-import { notificationService, type Notification } from '../../services/notification.service';
+import { notificationService, type Notification } from '../../api/notification.api';
 import { clsx } from 'clsx';
 
 const timeAgo = (iso: string) => {

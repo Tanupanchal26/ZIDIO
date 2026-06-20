@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Users, Lock, Hash, Trash2, Settings, ArrowRight } from 'lucide-react';
-import { teamService, type Team } from '../services/team.service';
+import { teamService, type Team } from '../api/team.api';
 import { toTeam } from '../constants';
 import { useAppSelector } from '../hooks/useAppDispatch';
 import Card from '../components/common/Card';

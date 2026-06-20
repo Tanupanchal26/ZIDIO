@@ -9,8 +9,8 @@ import {
 } from 'lucide-react';
 import { ROUTES } from '../constants';
 import { useAppSelector, useAppDispatch } from '../hooks/useAppDispatch';
-import { clearAuth } from '../store/slices/authSlice';
-import { authService } from '../services/auth.service';
+import { clearAuth } from '../store/auth/auth.slice';
+import { authService } from '../api/auth.api';
 import toast from 'react-hot-toast';
 import Logo from '../components/common/Logo';
 

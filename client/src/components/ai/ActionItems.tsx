@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { CheckSquare, User, Zap, Check, Loader2 } from 'lucide-react';
 import { useAI } from '../../hooks/useAI';
-import { aiService } from '../../services/ai.service';
+import { aiService } from '../../api/ai.api';
 import Badge from '../common/Badge';
 
 const PRIORITY_BADGE = {
@@ -68,7 +68,7 @@ const ActionItems = ({ meetingId }: { meetingId: string }) => {
               <p className="text-[10px] text-[var(--color-text-dim)] mt-0.5">Due: {item.dueDate}</p>
             )}
           </div>
-          <Badge variant={PRIORITY_BADGE[item.priority]} className="flex-shrink-0 capitalize">
+          <Badge variant={PRIORITY_BADGE[item.priority as keyof typeof PRIORITY_BADGE]} className="flex-shrink-0 capitalize">
             {item.priority}
           </Badge>
         </div>

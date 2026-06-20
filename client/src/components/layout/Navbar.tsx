@@ -2,7 +2,7 @@ import { useRef, useState } from 'react';
 import { Search, Menu, Plus, Video, Command } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAppSelector, useAppDispatch } from '../../hooks/useAppDispatch';
-import { setMobileSidebar } from '../../store/slices/uiSlice';
+import { setMobileSidebar } from '../../store/ui/ui.slice';
 import NotificationCenter from '../common/NotificationCenter';
 import { ROUTES } from '../../constants';
 

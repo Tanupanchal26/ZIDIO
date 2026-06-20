@@ -3,7 +3,7 @@ import {
   UploadCloud, FileText, FileImage, FileVideo, File, 
   Trash2, Download, ExternalLink, Loader2, AlertCircle 
 } from 'lucide-react';
-import { mediaService } from '../services/media.service';
+import { mediaService } from '../api/media.api';
 import Button from '../components/common/Button';
 import Loader from '../components/common/Loader';
 import toast from 'react-hot-toast';

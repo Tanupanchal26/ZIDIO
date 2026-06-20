@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { MicOff, VideoOff } from 'lucide-react';
-import { useMeetingStore } from '../../store/meeting.store';
-import { useAuthStore } from '../../store/auth.store';
+import { useMeetingStore } from '../../store/meeting/meeting.store';
+import { useAuthStore } from '../../store/auth/auth.store';
 import { clsx } from 'clsx';
 
 const VideoTile = ({ name, isMuted, isVideoOff, isScreenSharing, isActive, isLocal, stream, isSingle }: {

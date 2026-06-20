@@ -1,6 +1,6 @@
 import { MicOff, Crown, UserX } from 'lucide-react';
-import { useMeetingStore } from '../../store/meeting.store';
-import { useAuthStore } from '../../store/auth.store';
+import { useMeetingStore } from '../../store/meeting/meeting.store';
+import { useAuthStore } from '../../store/auth/auth.store';
 import { clsx } from 'clsx';
 
 const ParticipantList = () => {

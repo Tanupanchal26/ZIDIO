@@ -1,5 +1,5 @@
 import { Mic, MicOff, Video, VideoOff, Monitor, Circle, PhoneOff, Hand, Smile, MoreHorizontal } from 'lucide-react';
-import { useMeetingStore } from '../../store/meeting.store';
+import { useMeetingStore } from '../../store/meeting/meeting.store';
 import { useMeeting } from '../../hooks/useMeeting';
 import { useRecording } from '../../hooks/useRecording';
 import { getSocket } from '../../utils/socket';

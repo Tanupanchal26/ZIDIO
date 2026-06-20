@@ -1,8 +1,8 @@
 import { useEffect } from 'react';
-import { useMeetingStore } from '../store/meeting.store';
-import { useAIStore } from '../store/ai.store';
+import { useMeetingStore } from '../store/meeting/meeting.store';
+import { useAIStore } from '../store/ai/ai.store';
 import { useSocket } from './useSocket';
-import { meetingService } from '../services/meeting.service';
+import { meetingService } from '../api/meeting.api';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import { ROUTES } from '../utils/constants';

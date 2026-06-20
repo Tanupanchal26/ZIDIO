@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk, type PayloadAction } from '@reduxjs/toolkit';
-import { teamService, type Team, type Channel } from '../../services/team.service';
+import { teamService, type Team, type Channel } from '../../api/team.api';
 
 interface TeamState {
   teams: Team[];

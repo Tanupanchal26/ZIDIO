@@ -2,7 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Eye, EyeOff, Video, Lock, CheckCircle } from 'lucide-react';
 import { ROUTES } from '../constants';
-import axiosClient from '../api/axiosClient';
+import axiosClient from '../api/axios';
 import Logo from '../components/common/Logo';
 
 const ResetPassword = () => {

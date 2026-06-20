@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Send } from 'lucide-react';
 import { useChat } from '../../hooks/useChat';
-import { useAuthStore } from '../../store/auth.store';
+import { useAuthStore } from '../../store/auth/auth.store';
 import { clsx } from 'clsx';
 
 const fmt = (ts: string) => new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });

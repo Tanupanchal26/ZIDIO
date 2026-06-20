@@ -1,7 +1,7 @@
 import { useRef } from 'react';
-import { useMeetingStore } from '../store/meeting.store';
-import { useAuthStore } from '../store/auth.store';
-import { recordingService } from '../services/recording.service';
+import { useMeetingStore } from '../store/meeting/meeting.store';
+import { useAuthStore } from '../store/auth/auth.store';
+import { recordingService } from '../api/recording.api';
 import { getSocket } from '../utils/socket';
 import toast from 'react-hot-toast';
 

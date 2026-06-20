@@ -1,4 +1,4 @@
-import api from './api';
+import api from './axios';
 
 export const recordingService = {
   startRecording: (meetingId: string) => api.post('/recordings/start', { meetingId }),

@@ -5,8 +5,8 @@ import { TrendingUp, TrendingDown, Loader2, Download } from 'lucide-react';
 import Badge from '../components/common/Badge';
 import Card from '../components/common/Card';
 import Button from '../components/common/Button';
-import { analyticsService } from '../services/analytics.service';
-import { exportService } from '../services/export.service';
+import { analyticsService } from '../api/analytics.api';
+import { exportService } from '../api/export.api';
 import { useAppSelector } from '../hooks/useAppDispatch';
 
 const TP = ({ active, payload, label }: any) => active && payload?.length ? (

@@ -11,7 +11,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Plus, GripVertical, Calendar, Trash2 } from 'lucide-react';
-import { taskService, type Task } from '../services/task.service';
+import { taskService, type Task } from '../api/task.api';
 import Badge from '../components/common/Badge';
 import Button from '../components/common/Button';
 import Modal from '../components/common/Modal';
