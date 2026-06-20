@@ -19,7 +19,7 @@ export default function RecordingDetail() {
     try {
       setLoading(true);
       const res = await recordingService.getRecording(id!);
-      setRecording(res.data.data);
+      setRecording(res.data);
     } catch (err) {
       toast.error('Failed to load recording');
       navigate('/recordings');

@@ -69,7 +69,7 @@ export default function Dashboard() {
 
   const { data, isLoading } = useQuery({
     queryKey: ['dashboard'],
-    queryFn: () => analyticsService.getDashboard().then(res => res.data.data),
+    queryFn: () => analyticsService.getDashboard().then(res => res.data),
   });
 
   if (isLoading || !data) {

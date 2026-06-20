@@ -22,7 +22,7 @@ const fu = (delay = 0) => ({
 const Analytics = () => {
   const { data, isLoading, error } = useQuery({
     queryKey: ['analytics'],
-    queryFn: () => analyticsService.getAnalytics().then(res => res.data.data),
+    queryFn: () => analyticsService.getAnalytics().then(res => res.data),
   });
 
   if (isLoading) {
