@@ -11,7 +11,17 @@ export const useChat = (meetingId: string) => {
     if (!socket || !meetingId) return;
     socket.emit('chat:join', meetingId);
 
-    const onMsg    = (msg: ChatMessage) => addMessage(msg);
+    const onMsg = (data: any) => {
+      addMessage({
+        id: data._id || data.id,
+        senderId: data.sender?._id || data.senderId,
+        senderName: data.sender?.name || data.senderName,
+        senderAvatar: data.sender?.avatar || data.senderAvatar,
+        content: data.content,
+        timestamp: data.createdAt || data.timestamp,
+        type: data.type || 'text',
+      });
+    };
     const onTyping = ({ name, isTyping }: { name: string; isTyping: boolean }) =>
       setTyping(name, isTyping);
 
@@ -26,15 +36,7 @@ export const useChat = (meetingId: string) => {
   }, [meetingId, socket]);
 
   const sendMessage = (content: string, sender: { id: string; name: string }) => {
-    const msg: ChatMessage = {
-      id: Date.now().toString(),
-      senderId: sender.id,
-      senderName: sender.name,
-      content,
-      timestamp: new Date().toISOString(),
-    };
     safeEmit('chat:message', { meetingId, content });
-    addMessage(msg);
   };
 
   const sendTyping = (name: string, isTyping: boolean) =>

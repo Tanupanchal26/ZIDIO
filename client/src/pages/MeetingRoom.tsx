@@ -18,6 +18,7 @@ import ActionItems from '../components/ai/ActionItems';
 import AIAssistant from '../components/ai/AIAssistant';
 import { useMeetingStore } from '../store/meeting/meeting.store';
 import { useWebRTC } from '../hooks/useWebRTC';
+import { useTranscription } from '../hooks/useTranscription';
 import { useAuthStore } from '../store/auth/auth.store';
 import { useFocusTrap } from '../hooks/useFocusTrap';
 
@@ -110,6 +111,8 @@ const MeetingRoom = () => {
 
   const { setCurrentMeeting, isRecording, currentMeeting } = useMeetingStore();
   const { localStreamRef, localStream, remoteStreams, startScreenShare, stopScreenShare } = useWebRTC({ roomId: id ?? '', userId: user?.id ?? '' });
+  
+  useTranscription(id ?? '');
 
   useEffect(() => {
     if (id) setCurrentMeeting({ id, title: 'Live Meeting', roomId: id, host: user?.id ?? '' });

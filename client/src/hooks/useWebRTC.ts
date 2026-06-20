@@ -61,7 +61,25 @@ export const useWebRTC = ({ roomId, userId }: WebRTCConfig) => {
 
     pc.oniceconnectionstatechange = () => {
       if (pc.iceConnectionState === 'disconnected' || pc.iceConnectionState === 'failed') {
-        closePeerConnection(remoteSocketId);
+        if (isInitiator) {
+          pc.createOffer({ iceRestart: true })
+            .then(offer => pc.setLocalDescription(offer))
+            .then(() => {
+              socket.emit('meeting:signal', {
+                roomId,
+                to: remoteSocketId,
+                signal: { type: 'offer', sdp: pc.localDescription },
+              });
+            })
+            .catch(err => console.error('ICE restart failed:', err));
+        } else {
+          // Responder waits for the new offer, or closes if it takes too long
+          setTimeout(() => {
+            if (pc.iceConnectionState === 'disconnected' || pc.iceConnectionState === 'failed') {
+              closePeerConnection(remoteSocketId);
+            }
+          }, 5000);
+        }
       }
     };
 
