@@ -1,6 +1,7 @@
 const router     = require('express').Router();
 const ctrl       = require('../controllers/meeting.controller');
 const { protect, scopeTenant, authorize, roleGuard } = require('../middleware/auth.middleware');
+const { ROLES }  = require('../constants');
 const validate   = require('../middleware/validate.middleware');
 const V          = require('../validators/meeting.validator');
 

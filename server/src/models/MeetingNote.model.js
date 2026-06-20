@@ -21,7 +21,7 @@ const actionItemSchema = new mongoose.Schema({
 
 const meetingNoteSchema = new mongoose.Schema({
   tenantId:    { type: mongoose.Schema.Types.ObjectId, ref: 'Tenant', required: true, index: true },
-  meeting:     { type: mongoose.Schema.Types.ObjectId, ref: 'Meeting', required: true, index: true },
+  meeting:     { type: mongoose.Schema.Types.ObjectId, ref: 'Meeting', required: true },
   createdBy:   { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   lastEditedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
 
