@@ -109,7 +109,7 @@ const MeetingRoom = () => {
   useFocusTrap(panelRef, panelOpen);
 
   const { setCurrentMeeting, isRecording, currentMeeting } = useMeetingStore();
-  const { localStreamRef, localStream } = useWebRTC({ roomId: id ?? '', userId: user?.id ?? '' });
+  const { localStreamRef, localStream, startScreenShare, stopScreenShare } = useWebRTC({ roomId: id ?? '', userId: user?.id ?? '' });
 
   useEffect(() => {
     if (id) setCurrentMeeting({ id, title: 'Live Meeting', roomId: id, host: user?.id ?? '' });
@@ -185,7 +185,7 @@ const MeetingRoom = () => {
           <div className="flex-1 relative overflow-hidden">
             <VideoGrid localStream={localStream} />
           </div>
-          <Controls />
+          <Controls startScreenShare={startScreenShare} stopScreenShare={stopScreenShare} />
         </div>
 
         {/* Right panel — hidden on mobile (xs), slides from right on sm+ */}

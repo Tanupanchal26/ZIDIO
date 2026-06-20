@@ -1,6 +1,40 @@
 const Recording = require('../models/Recording.model');
 const Meeting = require('../models/Meeting.model');
 const ApiError = require('../utils/ApiError');
+const cloudinary = require('../config/cloudinary');
+const { Readable } = require('stream');
+
+exports.uploadRecording = async (meetingId, tenantId, ownerId, buffer, sizeBytes) => {
+  const meeting = await Meeting.findOne({ _id: meetingId, tenantId });
+  if (!meeting) throw ApiError.notFound('Meeting not found');
+
+  return new Promise((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(
+      { resource_type: 'video', folder: `intellmeet/recordings/${tenantId}` },
+      async (error, result) => {
+        if (error) return reject(new ApiError(500, 'Cloudinary upload failed'));
+
+        const recording = await Recording.create({
+          tenantId,
+          meetingId,
+          ownerId,
+          url: result.secure_url,
+          status: 'ready',
+          duration: Math.round(result.duration || 0),
+          sizeBytes: sizeBytes || result.bytes
+        });
+
+        resolve(recording);
+      }
+    );
+
+    const readable = new Readable();
+    readable._read = () => {};
+    readable.push(buffer);
+    readable.push(null);
+    readable.pipe(stream);
+  });
+};
 
 // In a real application, upload logic would use AWS S3 or similar.
 // For this local architecture, we'll assume files are saved to local disk or a dummy URL.

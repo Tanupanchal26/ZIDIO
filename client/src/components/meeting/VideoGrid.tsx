@@ -4,8 +4,8 @@ import { useMeetingStore } from '../../store/meeting.store';
 import { useAuthStore } from '../../store/auth.store';
 import { clsx } from 'clsx';
 
-const VideoTile = ({ name, isMuted, isVideoOff, isActive, isLocal, stream, isSingle }: {
-  name: string; isMuted: boolean; isVideoOff: boolean; isActive?: boolean; isLocal?: boolean; stream?: MediaStream | null; isSingle?: boolean;
+const VideoTile = ({ name, isMuted, isVideoOff, isScreenSharing, isActive, isLocal, stream, isSingle }: {
+  name: string; isMuted: boolean; isVideoOff: boolean; isScreenSharing?: boolean; isActive?: boolean; isLocal?: boolean; stream?: MediaStream | null; isSingle?: boolean;
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
 
@@ -34,7 +34,7 @@ const VideoTile = ({ name, isMuted, isVideoOff, isActive, isLocal, stream, isSin
           muted={isLocal}
           className={clsx(
             "absolute inset-0 w-full h-full object-cover",
-            isLocal && "scale-x-[-1]"
+            isLocal && !isScreenSharing && "scale-x-[-1]"
           )}
         />
       ) : (
@@ -52,9 +52,16 @@ const VideoTile = ({ name, isMuted, isVideoOff, isActive, isLocal, stream, isSin
 
       {/* Name Tag Overlay */}
       <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 sm:opacity-100" aria-hidden="true">
-        <span className="text-sm font-medium text-white bg-black/50 backdrop-blur-md rounded-xl px-3 py-1.5 shadow-lg border border-white/10">
-          {name}{isLocal ? ' (You)' : ''}
-        </span>
+        <div className="flex gap-2 items-center">
+          <span className="text-sm font-medium text-white bg-black/50 backdrop-blur-md rounded-xl px-3 py-1.5 shadow-lg border border-white/10">
+            {name}{isLocal ? ' (You)' : ''}
+          </span>
+          {isScreenSharing && (
+            <span className="text-xs font-bold text-white bg-[var(--color-primary)]/80 backdrop-blur-md rounded-xl px-2 py-1 shadow-lg border border-white/10">
+              Presenter
+            </span>
+          )}
+        </div>
         <div className="flex gap-2">
           {isMuted    && <div className="w-8 h-8 rounded-full bg-red-500/90 flex items-center justify-center shadow-lg backdrop-blur-md border border-white/10"><MicOff  size={14} className="text-white" /></div>}
           {isVideoOff && <div className="w-8 h-8 rounded-full bg-slate-800/90 flex items-center justify-center shadow-lg backdrop-blur-md border border-white/10"><VideoOff size={14} className="text-white" /></div>}
@@ -65,11 +72,11 @@ const VideoTile = ({ name, isMuted, isVideoOff, isActive, isLocal, stream, isSin
 };
 
 const VideoGrid = ({ localStream }: { localStream?: MediaStream | null }) => {
-  const { participants, isVideoOff, isMuted } = useMeetingStore();
+  const { participants, isVideoOff, isMuted, isScreenSharing } = useMeetingStore();
   const { user } = useAuthStore();
   const allTiles = [
-    { id: 'local', name: user?.name || 'You', isMuted, isVideoOff, isLocal: true, isActive: true, stream: localStream },
-    ...participants.map(p => ({ id: p.socketId, name: p.name, isMuted: p.isMuted, isVideoOff: p.isVideoOff, isLocal: false, isActive: false, stream: null }))
+    { id: 'local', name: user?.name || 'You', isMuted, isVideoOff, isScreenSharing, isLocal: true, isActive: true, stream: localStream },
+    ...participants.map(p => ({ id: p.socketId, name: p.name, isMuted: p.isMuted, isVideoOff: p.isVideoOff, isScreenSharing: p.isScreenSharing, isLocal: false, isActive: false, stream: null }))
   ];
   
   const isSingle = allTiles.length === 1;

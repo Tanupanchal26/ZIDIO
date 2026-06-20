@@ -5,9 +5,10 @@ interface WebRTCConfig { roomId: string; userId: string; }
 
 export const useWebRTC = ({ roomId, userId }: WebRTCConfig) => {
   const localStreamRef = useRef<MediaStream | null>(null);
+  const screenStreamRef = useRef<MediaStream | null>(null);
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const peersRef = useRef<Map<string, RTCPeerConnection>>(new Map());
-  const { isVideoOff, isMuted } = useMeetingStore();
+  const { isVideoOff, isMuted, setScreenSharing } = useMeetingStore();
 
   // Initial Audio Setup
   useEffect(() => {
@@ -62,5 +63,58 @@ export const useWebRTC = ({ roomId, userId }: WebRTCConfig) => {
     }
   }, [isMuted]);
 
-  return { localStreamRef, localStream, peersRef };
+  const stopScreenShare = () => {
+    if (screenStreamRef.current) {
+      screenStreamRef.current.getTracks().forEach(t => t.stop());
+      screenStreamRef.current = null;
+    }
+    setScreenSharing(false);
+
+    // Restore camera track to local stream
+    if (localStreamRef.current) {
+      const cameraVideoTrack = localStreamRef.current.getVideoTracks()[0];
+      
+      // Update peers with camera track (or null if camera is off)
+      peersRef.current.forEach(pc => {
+        const sender = pc.getSenders().find(s => s.track?.kind === 'video');
+        if (sender) sender.replaceTrack(cameraVideoTrack || null);
+      });
+
+      // We don't replace the local preview video track directly because localStream is already 
+      // showing localStreamRef. If the camera was off, it's fine.
+      setLocalStream(new MediaStream(localStreamRef.current.getTracks()));
+    }
+  };
+
+  const startScreenShare = async () => {
+    try {
+      const screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+      screenStreamRef.current = screenStream;
+      const screenVideoTrack = screenStream.getVideoTracks()[0];
+
+      // Listen for browser "Stop sharing" button
+      screenVideoTrack.onended = () => stopScreenShare();
+
+      // Replace outgoing video track for all peers
+      peersRef.current.forEach(pc => {
+        const sender = pc.getSenders().find(s => s.track?.kind === 'video');
+        if (sender) sender.replaceTrack(screenVideoTrack);
+      });
+
+      // Temporarily show screen share in local preview (optional, but good UX)
+      // We create a mixed stream to preview
+      const previewStream = new MediaStream([screenVideoTrack]);
+      if (localStreamRef.current) {
+        const audioTrack = localStreamRef.current.getAudioTracks()[0];
+        if (audioTrack) previewStream.addTrack(audioTrack);
+      }
+      setLocalStream(previewStream);
+      setScreenSharing(true);
+    } catch (err) {
+      console.error("Failed to start screen share", err);
+      setScreenSharing(false);
+    }
+  };
+
+  return { localStreamRef, localStream, peersRef, startScreenShare, stopScreenShare };
 };
