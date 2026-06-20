@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAppDispatch } from '../hooks/useAppDispatch';
 import { setCredentials } from '../store/auth/auth.slice';
@@ -9,11 +9,7 @@ const GoogleAuthSuccess = () => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const [params] = useSearchParams();
-  const handled  = useRef(false);
-
   useEffect(() => {
-    if (handled.current) return;
-    handled.current = true;
 
     const getParam = (key: string) => params.get(key) || new URLSearchParams(window.location.hash.substring(1)).get(key);
     const token = getParam('token');
