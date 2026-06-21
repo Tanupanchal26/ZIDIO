@@ -48,7 +48,9 @@ const Lobby = () => {
         toast.error('Meeting created but could not get ID for redirection');
       }
     },
-    onError: (err: any) => toast.error(err?.message || 'Failed to create meeting'),
+    onError: (err: any) => {
+      toast.error(err?.message || 'Failed to create meeting');
+    },
   });
 
   const handleJoin = async () => {
@@ -162,11 +164,37 @@ const Lobby = () => {
         <div className="flex flex-col gap-4">
           <div>
             <label className="text-xs font-medium text-[var(--color-text-muted)] block mb-1.5">Meeting Title</label>
-            <input value={title} onChange={e => setTitle(e.target.value)} onKeyDown={e => e.key === 'Enter' && createMutation.mutate()} placeholder="e.g. Product Sync, Sprint Review..." className="input-light" />
+            <input
+              value={title}
+              onChange={e => setTitle(e.target.value)}
+              onKeyDown={e => {
+                if (e.key !== 'Enter') return;
+                if (createMutation.isPending) return;
+                createMutation.mutate();
+              }}
+              placeholder="e.g. Product Sync, Sprint Review..."
+              className="input-light"
+              disabled={createMutation.isPending}
+            />
           </div>
           <div className="flex gap-3">
-            <Button variant="secondary" className="flex-1" onClick={() => setShowCreate(false)}>Cancel</Button>
-            <Button loading={createMutation.isPending} onClick={() => createMutation.mutate()} className="flex-1 gap-2">
+            <Button
+              variant="secondary"
+              className="flex-1"
+              onClick={() => setShowCreate(false)}
+              disabled={createMutation.isPending}
+            >
+              Cancel
+            </Button>
+            <Button
+              loading={createMutation.isPending}
+              onClick={() => {
+                if (createMutation.isPending) return;
+                createMutation.mutate();
+              }}
+              className="flex-1 gap-2"
+              disabled={createMutation.isPending}
+            >
               <Video size={14} /> Start Meeting
             </Button>
           </div>

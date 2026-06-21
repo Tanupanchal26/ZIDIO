@@ -16,7 +16,7 @@ const validate = (schemas) => (req, res, next) => {
     if (!schemas[part]) continue;
 
     const { error } = schemas[part].validate(req[part], {
-      abortEarly:   false,    // collect ALL errors, not just first
+      abortEarly:   true,     // fail fast to avoid multiple noisy “Validation failed” entries
       stripUnknown: true,     // silently drop unknown keys
       convert:      true,     // coerce types (string → number, etc.)
     });
@@ -32,10 +32,12 @@ const validate = (schemas) => (req, res, next) => {
 
   if (allErrors.length > 0) {
     const first = allErrors[0];
-    const err = ApiError.badRequest(first.message, allErrors);
+    // Keep only the first validation issue to prevent duplicate noisy “Validation failed” payloads.
+    const err = ApiError.badRequest(first.message, [first]);
     err.field = first.field;
     return next(err);
   }
+
 
   next();
 };
