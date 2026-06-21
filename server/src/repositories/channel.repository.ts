@@ -6,9 +6,10 @@ const ApiError = require('../utils/ApiError');
 class ChannelRepository extends BaseRepository {
   constructor() { super(Channel); }
 
-  findByTeam(teamId, userId) {
+  findByTeam(teamId, tenantId, userId) {
     return Channel.find({
       team: teamId,
+      tenantId,
       isArchived: false,
       $or: [{ type: 'public' }, { type: 'announcement' }, { members: userId }],
     }).sort({ isDefault: -1, name: 1 });

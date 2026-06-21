@@ -15,12 +15,13 @@ const assertHost = (meeting, userId) => {
 
 // ── Create ────────────────────────────────────────────────────────────────────
 const createMeeting = async (tenantId, userId, data) => {
+  const { participants, ...rest } = data;
   const meeting = await meetingRepo.create({
     tenantId,
     host:   userId,
     roomId: uuidv4(),
-    participants: [userId],
-    ...data,
+    participants: participants?.length ? [...new Set([userId, ...participants])] : [userId],
+    ...rest,
   });
 
   if (data.participants?.length) {

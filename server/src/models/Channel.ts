@@ -19,6 +19,7 @@ const channelSchema = new mongoose.Schema({
 
 channelSchema.index({ team: 1, slug: 1 }, { unique: true });
 channelSchema.index({ team: 1, isArchived: 1 });
+channelSchema.index({ tenantId: 1, team: 1 });
 
 module.exports = mongoose.model('Channel', channelSchema);
 

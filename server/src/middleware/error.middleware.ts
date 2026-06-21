@@ -62,6 +62,7 @@ const errorMiddleware = (err, req, res, _next) => {
     success:    false,
     statusCode: normalized.statusCode,
     message:    normalized.message,
+    ...(normalized.field ? { field: normalized.field } : {}),
     requestId:  res.locals?.requestId,
     ...(normalized.errors?.length && { errors: normalized.errors }),
     // Only expose stack in development

@@ -1,8 +1,11 @@
 // @ts-nocheck
-const userRepo   = require('../repositories/user.repository');
-const jwtService = require('./jwt.service');
+const userRepo    = require('../repositories/user.repository');
+const teamRepo    = require('../repositories/team.repository');
+const channelRepo = require('../repositories/channel.repository');
+const Tenant      = require('../models/Tenant');
+const jwtService  = require('./jwt.service');
 const emailService = require('./email.service');
-const ApiError   = require('../utils/ApiError');
+const ApiError    = require('../utils/ApiError');
 const { USER_STATUS, AUTH } = require('../constants');
 
 // Generic "invalid credentials" message — never reveal whether email exists
@@ -13,14 +16,39 @@ const signup = async ({ name, email, password, role }) => {
   const exists = await userRepo.findByEmail(email);
   if (exists) throw ApiError.conflict('An account with this email already exists');
 
-  // Password is hashed by the pre-save hook in User model (bcrypt rounds: 12)
-  const user = await userRepo.create({ name, email, password, role });
+  const slugify = (str) =>
+    str.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 
-  // Generate email verification token
+  const tenant = await Tenant.create({
+    name:   `${name}'s Workspace`,
+    slug:   `${slugify(name)}-${Date.now()}`,
+    plan:   'free',
+  });
+
+  const user = await userRepo.create({ name, email, password, role, tenantId: tenant._id });
+
+  const team = await teamRepo.create({
+    tenantId: tenant._id,
+    name:      'General',
+    slug:      'general',
+    createdBy: user._id,
+    members:   [{ user: user._id, role: 'owner' }],
+  });
+
+  await channelRepo.create({
+    tenantId: tenant._id,
+    team:      team._id,
+    name:      'general',
+    slug:      'general',
+    type:      'public',
+    isDefault: true,
+    createdBy: user._id,
+    members:   [user._id],
+  });
+
   const rawToken = user.createToken('emailVerify');
   await user.save({ validateBeforeSave: false });
 
-  // Fire-and-forget — don't fail signup if email fails
   emailService.sendVerificationEmail(user, rawToken).catch(() => {});
 
   const { accessToken, refreshToken } = jwtService.generateTokenPair(user);

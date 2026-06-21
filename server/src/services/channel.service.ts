@@ -37,7 +37,7 @@ const createChannel = async (teamId, tenantId, userId, data) => {
 // ── List channels for team ────────────────────────────────────────────────────
 const getTeamChannels = async (teamId, tenantId, userId) => {
   await assertTeamMember(teamId, tenantId, userId);
-  return channelRepo.findByTeam(teamId, userId);
+  return channelRepo.findByTeam(teamId, tenantId, userId);
 };
 
 // ── Get channel ───────────────────────────────────────────────────────────────

@@ -395,7 +395,7 @@ const Channels = () => {
       setShowCreate(false);
       setForm({ name: '', description: '', type: 'public' });
     },
-    onError: () => toast.error('Failed to create channel'),
+    onError: (err: any) => toast.error(err?.message || 'Failed to create channel'),
   });
 
   const handleChannelClick = (ch: Channel) => {

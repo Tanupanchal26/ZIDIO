@@ -31,7 +31,10 @@ const validate = (schemas) => (req, res, next) => {
   }
 
   if (allErrors.length > 0) {
-    return next(ApiError.badRequest('Validation failed', allErrors));
+    const first = allErrors[0];
+    const err = ApiError.badRequest(first.message, allErrors);
+    err.field = first.field;
+    return next(err);
   }
 
   next();

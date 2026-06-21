@@ -58,7 +58,8 @@ const meetingSchema = new mongoose.Schema({
 
 meetingSchema.index({ tenantId: 1, status: 1 });
 meetingSchema.index({ tenantId: 1, scheduledAt: 1 });
-meetingSchema.index({ host: 1 });
+meetingSchema.index({ tenantId: 1, host: 1 });
+meetingSchema.index({ tenantId: 1, createdAt: -1 });
 
 module.exports = mongoose.model('Meeting', meetingSchema);
 

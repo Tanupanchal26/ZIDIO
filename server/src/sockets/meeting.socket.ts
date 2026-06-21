@@ -151,10 +151,7 @@ module.exports = (io, socket) => {
   // ── Meeting ended — trigger AI pipeline ──────────────────────────────────
   socket.on('meeting:ended', async ({ meetingId }) => {
     try {
-      await Meeting.findOneAndUpdate(
-        { roomId: meetingId },
-        { status: 'ended', endedAt: new Date() }
-      );
+      await Meeting.findByIdAndUpdate(meetingId, { status: 'ended', endedAt: new Date() });
 
       // Emit progress so UI can show loading state
       io.to(`meeting:${meetingId}`).emit('ai:processing', { step: 'summary' });

@@ -24,8 +24,8 @@ router.delete('/:id/members/:userId', authorize(ROLES.ADMIN), validate(V.memberP
 router.patch('/:id/members/:userId/role',validate(V.updateMemberRole), ctrl.updateMemberRole);
 
 // Channels nested under team
-router.post('/:teamId/channels', authorize(ROLES.ADMIN), validate(CV.createChannel), channelCtrl.createChannel);
-router.get('/:teamId/channels',                                channelCtrl.listChannels);
+router.post('/:teamId/channels', validate(CV.createChannel), channelCtrl.createChannel);
+router.get('/:teamId/channels',  channelCtrl.listChannels);
 
 module.exports = router;
 
