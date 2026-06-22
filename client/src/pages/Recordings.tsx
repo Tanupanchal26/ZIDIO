@@ -44,23 +44,23 @@ export default function Recordings() {
   );
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
+    <div className="max-w-6xl mx-auto space-y-6 text-[var(--color-text)]">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-white">Recordings</h1>
-          <p className="text-slate-400 mt-1">Manage and playback your recorded meetings.</p>
+          <h1 className="text-3xl font-bold tracking-tight text-[var(--color-text)]">Recordings</h1>
+          <p className="text-[var(--color-text-secondary)] mt-1">Manage and playback your recorded meetings.</p>
         </div>
       </div>
 
       <div className="flex gap-4 mb-6">
         <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--color-text-secondary)]" />
           <input
             type="text"
             placeholder="Search by meeting title..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-slate-900 border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+            className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl pl-10 pr-4 py-2.5 text-[var(--color-text)] placeholder-[var(--color-text-secondary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
           />
         </div>
       </div>
@@ -68,10 +68,10 @@ export default function Recordings() {
       {loading ? (
         <Loader fullPage={false} label="Loading recordings..." />
       ) : filteredRecordings.length === 0 ? (
-        <div className="text-center py-20 bg-slate-900/50 rounded-2xl border border-white/5">
-          <Video className="w-16 h-16 text-slate-500 mx-auto mb-4" />
-          <h3 className="text-xl font-medium text-white mb-2">No recordings found</h3>
-          <p className="text-slate-400">Record a meeting to see it here.</p>
+        <div className="text-center py-20 bg-[var(--color-surface-hover)] rounded-2xl border border-[var(--color-border-subtle)]">
+          <Video className="w-16 h-16 text-[var(--color-text-dim)] mx-auto mb-4" />
+          <h3 className="text-xl font-medium text-[var(--color-text)] mb-2">No recordings found</h3>
+          <p className="text-[var(--color-text-secondary)]">Record a meeting to see it here.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -79,7 +79,7 @@ export default function Recordings() {
             <div
               key={recording._id}
               onClick={() => navigate(`/recordings/${recording._id}`)}
-              className="group bg-slate-900 border border-white/10 rounded-2xl overflow-hidden hover:border-[var(--color-primary)]/50 transition-all cursor-pointer"
+              className="group bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl overflow-hidden hover:border-[var(--color-primary)]/50 transition-all cursor-pointer"
             >
               <div className="aspect-video bg-black relative flex items-center justify-center">
                 <Video className="w-12 h-12 text-slate-700" />
@@ -94,17 +94,17 @@ export default function Recordings() {
                 </div>
               </div>
               <div className="p-4">
-                <h3 className="text-lg font-semibold text-white mb-1 truncate">
+                <h3 className="text-lg font-semibold text-[var(--color-text)] mb-1 truncate">
                   {recording.meetingId?.title || 'Untitled Meeting'}
                 </h3>
                 <div className="flex flex-col gap-1 mt-3">
-                  <div className="flex items-center text-sm text-slate-400">
+                  <div className="flex items-center text-sm text-[var(--color-text-secondary)]">
                     <Calendar className="w-4 h-4 mr-2" />
                     {new Date(recording.createdAt).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}
                   </div>
                 </div>
-                <div className="flex justify-between items-center mt-4 pt-4 border-t border-white/5">
-                  <div className="text-xs text-slate-500 font-mono">
+                <div className="flex justify-between items-center mt-4 pt-4 border-t border-[var(--color-border-subtle)]">
+                  <div className="text-xs text-[var(--color-text-dim)] font-mono">
                     {(recording.sizeBytes / 1024 / 1024).toFixed(1)} MB
                   </div>
                   <div className="flex gap-2">
@@ -112,14 +112,14 @@ export default function Recordings() {
                       href={recording.url}
                       download
                       onClick={(e) => e.stopPropagation()}
-                      className="p-2 text-slate-400 hover:text-white bg-white/5 hover:bg-[var(--color-primary)] rounded-lg transition-colors"
+                      className="p-2 text-[var(--color-text-secondary)] hover:text-[var(--color-text)] bg-[var(--color-bg-tertiary)] hover:bg-[var(--color-primary)] rounded-lg transition-colors"
                       title="Download"
                     >
                       <Download className="w-4 h-4" />
                     </a>
                     <button
                       onClick={(e) => handleDelete(e, recording._id)}
-                      className="p-2 text-slate-400 hover:text-red-400 bg-white/5 hover:bg-red-500/20 rounded-lg transition-colors"
+                      className="p-2 text-[var(--color-text-secondary)] hover:text-red-400 bg-[var(--color-bg-tertiary)] hover:bg-red-500/20 rounded-lg transition-colors"
                       title="Delete"
                     >
                       <Trash2 className="w-4 h-4" />

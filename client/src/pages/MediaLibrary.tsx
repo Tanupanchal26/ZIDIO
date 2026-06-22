@@ -108,12 +108,12 @@ export default function MediaLibrary() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6 text-white font-sans">
+    <div className="max-w-6xl mx-auto space-y-6 text-[var(--color-text)] font-sans">
       
       {/* Title */}
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Media Library</h1>
-        <p className="text-slate-400 mt-1">Upload and manage media references securely on the server.</p>
+        <h1 className="text-3xl font-bold tracking-tight text-[var(--color-text)]">Media Library</h1>
+        <p className="text-[var(--color-text-secondary)] mt-1">Upload and manage media references securely on the server.</p>
       </div>
 
       {/* Upload Zone */}
@@ -122,10 +122,10 @@ export default function MediaLibrary() {
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
         onClick={() => fileInputRef.current?.click()}
-        className={`border-2 border-dashed rounded-2xl p-8 flex flex-col items-center justify-center gap-3 transition-all cursor-pointer select-none bg-slate-900/30
+        className={`border-2 border-dashed rounded-2xl p-8 flex flex-col items-center justify-center gap-3 transition-all cursor-pointer select-none bg-[var(--color-surface-2)]/40
           ${dragOver 
             ? 'border-[var(--color-primary)] bg-[var(--color-primary)]/5 scale-[1.01]' 
-            : 'border-white/10 hover:border-white/20 hover:bg-slate-900/50'
+            : 'border-[var(--color-border)] hover:border-[var(--color-border-strong)] hover:bg-[var(--color-surface-hover)]'
           }`}
       >
         <input 
@@ -139,16 +139,16 @@ export default function MediaLibrary() {
         {uploading ? (
           <div className="flex flex-col items-center gap-2">
             <Loader2 className="w-10 h-10 text-[var(--color-primary)] animate-spin" />
-            <p className="text-sm font-semibold text-slate-300">Uploading file to secure servers...</p>
+            <p className="text-sm font-semibold text-[var(--color-text)]">Uploading file to secure servers...</p>
           </div>
         ) : (
           <>
-            <div className="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center">
-              <UploadCloud className="w-6 h-6 text-slate-400" />
+            <div className="w-12 h-12 rounded-xl bg-[var(--color-bg-tertiary)] flex items-center justify-center">
+              <UploadCloud className="w-6 h-6 text-[var(--color-text-secondary)]" />
             </div>
             <div className="text-center">
-              <p className="text-sm font-medium">Click to upload or drag & drop files</p>
-              <p className="text-xs text-slate-500 mt-1">Supports Images, Videos, PDF, Word, and Text documents up to 10MB</p>
+              <p className="text-sm font-medium text-[var(--color-text)]">Click to upload or drag & drop files</p>
+              <p className="text-xs text-[var(--color-text-dim)] mt-1">Supports Images, Videos, PDF, Word, and Text documents up to 10MB</p>
             </div>
           </>
         )}
@@ -158,11 +158,11 @@ export default function MediaLibrary() {
       {loading ? (
         <Loader fullPage={false} label="Loading library..." />
       ) : mediaList.length === 0 ? (
-        <div className="text-center py-20 bg-slate-900/50 rounded-2xl border border-white/5 flex flex-col items-center justify-center gap-3">
-          <File className="w-14 h-14 text-slate-500" />
+        <div className="text-center py-20 bg-[var(--color-surface-hover)] rounded-2xl border border-[var(--color-border-subtle)] flex flex-col items-center justify-center gap-3">
+          <File className="w-14 h-14 text-[var(--color-text-dim)]" />
           <div>
-            <h3 className="text-lg font-semibold">Your Media Library is empty</h3>
-            <p className="text-sm text-slate-500 mt-1">Upload files to get started.</p>
+            <h3 className="text-lg font-semibold text-[var(--color-text)]">Your Media Library is empty</h3>
+            <p className="text-sm text-[var(--color-text-secondary)] mt-1">Upload files to get started.</p>
           </div>
         </div>
       ) : (
@@ -170,10 +170,10 @@ export default function MediaLibrary() {
           {mediaList.map((media) => (
             <div 
               key={media._id}
-              className="group relative bg-slate-900 border border-white/10 rounded-2xl overflow-hidden hover:border-indigo-500/40 transition-all flex flex-col"
+              className="group relative bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl overflow-hidden hover:border-indigo-500/40 transition-all flex flex-col"
             >
               {/* Media Preview/Thumbnail */}
-              <div className="aspect-[4/3] bg-black/60 relative flex items-center justify-center border-b border-white/5">
+              <div className="aspect-[4/3] bg-black/80 relative flex items-center justify-center border-b border-[var(--color-border-subtle)]">
                 {media.resourceType === 'image' ? (
                   <img 
                     src={media.url} 
@@ -188,7 +188,7 @@ export default function MediaLibrary() {
                     preload="metadata"
                   />
                 ) : (
-                  <div className="w-16 h-16 rounded-2xl bg-white/5 border border-white/5 flex items-center justify-center shadow-lg">
+                  <div className="w-16 h-16 rounded-2xl bg-[var(--color-bg-tertiary)] border border-[var(--color-border)] flex items-center justify-center shadow-lg">
                     {getFileIcon(media.resourceType)}
                   </div>
                 )}
@@ -199,7 +199,7 @@ export default function MediaLibrary() {
                     href={media.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="w-9 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 border border-white/10 flex items-center justify-center text-white transition-colors"
+                    className="w-9 h-9 rounded-lg bg-[var(--color-surface)] hover:bg-[var(--color-surface-hover)] border border-[var(--color-border)] flex items-center justify-center text-[var(--color-text)] transition-colors"
                     title="View Original"
                   >
                     <ExternalLink className="w-4 h-4" />
@@ -207,7 +207,7 @@ export default function MediaLibrary() {
                   <a 
                     href={media.url}
                     download={media.fileName}
-                    className="w-9 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 border border-white/10 flex items-center justify-center text-white transition-colors"
+                    className="w-9 h-9 rounded-lg bg-[var(--color-surface)] hover:bg-[var(--color-surface-hover)] border border-[var(--color-border)] flex items-center justify-center text-[var(--color-text)] transition-colors"
                     title="Download"
                   >
                     <Download className="w-4 h-4" />
@@ -225,15 +225,15 @@ export default function MediaLibrary() {
               {/* Media details card info */}
               <div className="p-4 flex-1 flex flex-col justify-between gap-3.5">
                 <div className="min-w-0">
-                  <h4 className="font-semibold text-[13px] truncate text-slate-100" title={media.fileName}>
+                  <h4 className="font-semibold text-[13px] truncate text-[var(--color-text)]" title={media.fileName}>
                     {media.fileName}
                   </h4>
-                  <p className="text-[11px] text-slate-400 truncate mt-1">
+                  <p className="text-[11px] text-[var(--color-text-secondary)] truncate mt-1">
                     Uploaded by {media.uploadedBy?.name || 'Unknown'}
                   </p>
                 </div>
                 
-                <div className="flex justify-between items-center text-[10.5px] text-slate-500 font-mono pt-3.5 border-t border-white/5">
+                <div className="flex justify-between items-center text-[10.5px] text-[var(--color-text-dim)] font-mono pt-3.5 border-t border-[var(--color-border-subtle)]">
                   <span>{formatBytes(media.fileSize)}</span>
                   <span>{new Date(media.createdAt).toLocaleDateString()}</span>
                 </div>
