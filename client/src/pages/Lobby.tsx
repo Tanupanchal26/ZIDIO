@@ -11,6 +11,22 @@ import Modal from '../components/common/Modal';
 import toast from 'react-hot-toast';
 import { PageContainer } from '../components/layout/PageContainer';
 import { PageHeader } from '../components/layout/PageHeader';
+import { useAppSelector } from '../hooks/useAppDispatch';
+
+import { useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Plus, Hash, Calendar, Clock, Video, ArrowRight, Users } from 'lucide-react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { meetingService } from '../api/meeting.api';
+import { MEETING_ROUTE } from '../constants';
+import Card from '../components/common/Card';
+import Button from '../components/common/Button';
+import Badge from '../components/common/Badge';
+import Modal from '../components/common/Modal';
+import toast from 'react-hot-toast';
+import { PageContainer } from '../components/layout/PageContainer';
+import { PageHeader } from '../components/layout/PageHeader';
+import { useAppSelector } from '../hooks/useAppDispatch';
 
 const fmt = (iso: string) => {
   if (!iso) return '—';
@@ -24,6 +40,7 @@ const Lobby = () => {
   const [title, setTitle] = useState('');
   const [joinId, setJoinId] = useState('');
   const qc = useQueryClient();
+  const user = useAppSelector((state: any) => state.auth.user);
 
   // Fetch meetings — API returns { success, data, ... } which is unwrapped by axios to { success, data }
   // so meetings are at response.data
@@ -34,7 +51,10 @@ const Lobby = () => {
   const meetings = Array.isArray(meetingsResponse) ? meetingsResponse : [];
 
   const createMutation = useMutation({
-    mutationFn: () => meetingService.create({ title: title || 'Quick Meeting' }) as Promise<any>,
+    mutationFn: (payload: { title: string; tenantId: string }) => {
+      console.log("Start Meeting Payload:", payload);
+      return meetingService.create(payload) as Promise<any>
+    },
     onSuccess: (response: any) => {
       qc.invalidateQueries({ queryKey: ['meetings'] });
       toast.success('Meeting created!');
@@ -49,7 +69,27 @@ const Lobby = () => {
       }
     },
     onError: (err: any) => {
-      toast.error(err?.message || 'Failed to create meeting');
+      console.log("API Error:", err.response?.data || err.data);
+      const status = err.status || err.response?.status;
+      const apiData = err.response?.data || err.data;
+      const fieldError = apiData?.errors?.[0]?.message;
+      const validationMsg = fieldError || apiData?.message || err.message;
+
+      if (status === 400) {
+        toast.error(validationMsg || 'Invalid request data');
+      } else if (status === 401) {
+        toast.error('Authentication required. Please log in again.');
+      } else if (status === 403) {
+        toast.error('You do not have permission to create meetings.');
+      } else if (status === 404) {
+        toast.error('Resource not found.');
+      } else if (status === 422) {
+        toast.error(validationMsg || 'Validation failed');
+      } else if (status === 500) {
+        toast.error('Server error. Please try again later.');
+      } else {
+        toast.error(validationMsg || 'Failed to create meeting');
+      }
     },
   });
 
@@ -170,7 +210,13 @@ const Lobby = () => {
               onKeyDown={e => {
                 if (e.key !== 'Enter') return;
                 if (createMutation.isPending) return;
-                createMutation.mutate();
+                const currentTenantId = user?.tenantId;
+                console.log("Verifying tenantId before API call:", currentTenantId);
+                if (!currentTenantId) {
+                  toast.error('Unable to start meeting: missing tenant information.');
+                  return;
+                }
+                createMutation.mutate({ title: title || 'Quick Meeting', tenantId: currentTenantId });
               }}
               placeholder="e.g. Product Sync, Sprint Review..."
               className="input-light"
@@ -187,16 +233,22 @@ const Lobby = () => {
               Cancel
             </Button>
             <Button
-              loading={createMutation.isPending}
-              onClick={() => {
-                if (createMutation.isPending) return;
-                createMutation.mutate();
-              }}
-              className="flex-1 gap-2"
-              disabled={createMutation.isPending}
-            >
-              <Video size={14} /> Start Meeting
-            </Button>
+               loading={createMutation.isPending}
+               onClick={() => {
+                 if (createMutation.isPending) return;
+                 const currentTenantId = user?.tenantId;
+                 console.log("Verifying tenantId before API call:", currentTenantId);
+                 if (!currentTenantId) {
+                   toast.error('Unable to start meeting: missing tenant information.');
+                   return;
+                 }
+                 createMutation.mutate({ title: title || 'Quick Meeting', tenantId: currentTenantId });
+               }}
+               className="flex-1 gap-2"
+               disabled={createMutation.isPending}
+             >
+               <Video size={14} /> Start Meeting
+             </Button>
           </div>
         </div>
       </Modal>
