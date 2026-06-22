@@ -23,6 +23,9 @@ const Lobby = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [showCreate, setShowCreate] = useState(searchParams.get('new') === '1');
+  const [createdMeeting, setCreatedMeeting] = useState<any>(null);
+  const [showStart, setShowStart] = useState(false);
+  const [startMeetingId, setStartMeetingId] = useState('');
   const [title, setTitle] = useState('');
   const [joinId, setJoinId] = useState('');
   const qc = useQueryClient();
@@ -44,12 +47,11 @@ const Lobby = () => {
     onSuccess: (response: any) => {
       qc.invalidateQueries({ queryKey: ['meetings'] });
       toast.success('Meeting created!');
-      setShowCreate(false);
       // API response is unwrapped by axios interceptor: { success, data: meeting }
       const meeting = response?.data || response;
       const meetingId = meeting?._id || meeting?.id || meeting?.roomId;
       if (meetingId) {
-        navigate(MEETING_ROUTE(meetingId));
+        setCreatedMeeting(meeting);
       } else {
         toast.error('Meeting created but could not get ID for redirection');
       }
@@ -115,30 +117,27 @@ const Lobby = () => {
       {/* Action cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Create */}
-        <Card hover className="flex flex-col gap-4 cursor-pointer" onClick={() => setShowCreate(true)}>
+        <Card hover className="flex flex-col gap-4 cursor-pointer" onClick={() => { setShowCreate(true); setCreatedMeeting(null); }}>
           <div className="w-12 h-12 rounded-xl bg-[var(--color-primary)]/15 flex items-center justify-center">
-            <Video size={22} className="text-[var(--color-primary)]" />
+            <Plus size={22} className="text-[var(--color-primary)]" />
           </div>
           <div>
-            <h3 className="font-semibold text-[var(--color-text)] mb-1">Start Instant Meeting</h3>
-            <p className="text-sm text-[var(--color-text-muted)]">Create a new meeting room and invite participants</p>
+            <h3 className="font-semibold text-[var(--color-text)] mb-1">New Meeting</h3>
+            <p className="text-sm text-[var(--color-text-muted)]">Create a new meeting room and configure it</p>
           </div>
-          <Button className="gap-2 w-fit">Start Now <ArrowRight size={13} /></Button>
+          <Button className="gap-2 w-fit">Create Now <ArrowRight size={13} /></Button>
         </Card>
 
-        {/* Join */}
-        <Card hover className="flex flex-col gap-4">
+        {/* Start / Join */}
+        <Card hover className="flex flex-col gap-4 cursor-pointer" onClick={() => setShowStart(true)}>
           <div className="w-12 h-12 rounded-xl bg-[var(--color-bg-secondary)] border border-[var(--color-border)]/40 flex items-center justify-center">
-            <Hash size={22} className="text-[var(--color-text)]" />
+            <Video size={22} className="text-[var(--color-text)]" />
           </div>
           <div>
-            <h3 className="font-semibold text-[var(--color-text)] mb-1">Join by Room ID</h3>
-            <p className="text-sm text-[var(--color-text-muted)]">Enter a meeting ID or link to join instantly</p>
+            <h3 className="font-semibold text-[var(--color-text)] mb-1">Start Meeting</h3>
+            <p className="text-sm text-[var(--color-text-muted)]">Start an existing scheduled meeting or join</p>
           </div>
-          <div className="flex items-center gap-2">
-            <input value={joinId} onChange={e => setJoinId(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleJoin()} placeholder="Enter room ID..." className="input-light flex-1 min-w-0 text-sm h-9" />
-            <Button onClick={handleJoin} variant="secondary" size="md" className="h-9">Join</Button>
-          </div>
+          <Button variant="secondary" className="gap-2 w-fit">Start / Join <ArrowRight size={13} /></Button>
         </Card>
       </div>
 
@@ -186,55 +185,118 @@ const Lobby = () => {
       </div>
 
       {/* Create modal */}
-      <Modal open={showCreate} onClose={() => setShowCreate(false)} title="Start New Meeting">
-        <div className="flex flex-col gap-4">
-          <div>
-            <label className="text-xs font-medium text-[var(--color-text-muted)] block mb-1.5">Meeting Title</label>
-            <input
-              value={title}
-              onChange={e => setTitle(e.target.value)}
-              onKeyDown={e => {
-                if (e.key !== 'Enter') return;
-                if (createMutation.isPending) return;
-                const currentTenantId = user?.tenantId;
-                console.log("Verifying tenantId before API call:", currentTenantId);
-                if (!currentTenantId) {
-                  toast.error('Unable to start meeting: missing tenant information.');
-                  return;
-                }
-                createMutation.mutate({ title: title || 'Quick Meeting', tenantId: currentTenantId });
-              }}
-              placeholder="e.g. Product Sync, Sprint Review..."
-              className="input-light"
-              disabled={createMutation.isPending}
-            />
+      <Modal open={showCreate} onClose={() => { setShowCreate(false); setCreatedMeeting(null); }} title={createdMeeting ? "Meeting Ready" : "Create New Meeting"}>
+        {createdMeeting ? (
+          <div className="flex flex-col gap-6">
+            <div className="p-4 bg-[var(--color-surface-2)] rounded-xl border border-[var(--color-border)]">
+              <p className="text-sm text-[var(--color-text-muted)] font-medium mb-2">Share this meeting link</p>
+              <div className="flex items-center gap-2">
+                <input readOnly value={`${window.location.origin}${MEETING_ROUTE(createdMeeting._id || createdMeeting.id || createdMeeting.roomId)}`} className="input-light flex-1 text-sm bg-[var(--color-bg-secondary)]" />
+                <Button onClick={() => {
+                  navigator.clipboard.writeText(`${window.location.origin}${MEETING_ROUTE(createdMeeting._id || createdMeeting.id || createdMeeting.roomId)}`);
+                  toast.success('Link copied to clipboard!');
+                }} variant="secondary">Copy</Button>
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <Button variant="secondary" className="flex-1" onClick={() => { setShowCreate(false); setCreatedMeeting(null); }}>Close</Button>
+              <Button className="flex-1 gap-2" onClick={() => navigate(MEETING_ROUTE(createdMeeting._id || createdMeeting.id || createdMeeting.roomId))}><Video size={14} /> Join Now</Button>
+            </div>
           </div>
-          <div className="flex gap-3">
-            <Button
-              variant="secondary"
-              className="flex-1"
-              onClick={() => setShowCreate(false)}
-              disabled={createMutation.isPending}
-            >
-              Cancel
-            </Button>
-            <Button
-               loading={createMutation.isPending}
-               onClick={() => {
-                 if (createMutation.isPending) return;
-                 const currentTenantId = user?.tenantId;
-                 console.log("Verifying tenantId before API call:", currentTenantId);
-                 if (!currentTenantId) {
-                   toast.error('Unable to start meeting: missing tenant information.');
-                   return;
-                 }
-                 createMutation.mutate({ title: title || 'Quick Meeting', tenantId: currentTenantId });
-               }}
-               className="flex-1 gap-2"
-               disabled={createMutation.isPending}
-             >
-               <Video size={14} /> Start Meeting
-             </Button>
+        ) : (
+          <div className="flex flex-col gap-4">
+            <div>
+              <label className="text-xs font-medium text-[var(--color-text-muted)] block mb-1.5">Meeting Title</label>
+              <input
+                value={title}
+                onChange={e => setTitle(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key !== 'Enter') return;
+                  if (createMutation.isPending) return;
+                  const currentTenantId = user?.tenantId;
+                  console.log("Verifying tenantId before API call:", currentTenantId);
+                  if (!currentTenantId) {
+                    toast.error('Unable to start meeting: missing tenant information.');
+                    return;
+                  }
+                  createMutation.mutate({ title: title || 'Quick Meeting', tenantId: currentTenantId });
+                }}
+                placeholder="e.g. Product Sync, Sprint Review..."
+                className="input-light"
+                disabled={createMutation.isPending}
+              />
+            </div>
+            <div className="flex gap-3">
+              <Button
+                variant="secondary"
+                className="flex-1"
+                onClick={() => { setShowCreate(false); setCreatedMeeting(null); }}
+                disabled={createMutation.isPending}
+              >
+                Cancel
+              </Button>
+              <Button
+                 loading={createMutation.isPending}
+                 onClick={() => {
+                   if (createMutation.isPending) return;
+                   const currentTenantId = user?.tenantId;
+                   console.log("Verifying tenantId before API call:", currentTenantId);
+                   if (!currentTenantId) {
+                     toast.error('Unable to start meeting: missing tenant information.');
+                     return;
+                   }
+                   createMutation.mutate({ title: title || 'Quick Meeting', tenantId: currentTenantId });
+                 }}
+                 className="flex-1 gap-2"
+                 disabled={createMutation.isPending}
+               >
+                 <Plus size={14} /> Create Meeting
+               </Button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* Start / Join modal */}
+      <Modal open={showStart} onClose={() => setShowStart(false)} title="Start or Join Meeting">
+        <div className="flex flex-col gap-6">
+          <div>
+            <label className="text-xs font-medium text-[var(--color-text-muted)] block mb-1.5">Join by Room ID or Link</label>
+            <div className="flex gap-2">
+              <input
+                value={joinId}
+                onChange={e => setJoinId(e.target.value)}
+                onKeyDown={e => { if(e.key === 'Enter') handleJoin(); }}
+                placeholder="Enter room ID..."
+                className="input-light flex-1"
+              />
+              <Button onClick={handleJoin} variant="secondary">Join</Button>
+            </div>
+          </div>
+
+          <div>
+            <label className="text-xs font-medium text-[var(--color-text-muted)] block mb-2">Start a Scheduled Meeting</label>
+            <div className="flex flex-col gap-2 max-h-48 overflow-y-auto pr-1">
+              {isLoading ? (
+                <div className="text-xs text-[var(--color-text-dim)]">Loading...</div>
+              ) : meetings.length === 0 ? (
+                <div className="text-xs text-[var(--color-text-dim)]">No upcoming meetings</div>
+              ) : (
+                meetings.map((m: any) => (
+                  <div key={m._id} className="flex items-center justify-between p-2.5 rounded-lg border border-[var(--color-border)] hover:bg-[var(--color-surface-hover)] cursor-pointer transition-colors" onClick={() => setStartMeetingId(m._id)}>
+                    <div className="flex flex-col min-w-0">
+                      <span className="text-sm font-semibold truncate text-[var(--color-text)]">{m.title}</span>
+                      <span className="text-xs text-[var(--color-text-dim)]">{fmt(m.startedAt || m.createdAt)}</span>
+                    </div>
+                    <Button size="sm" onClick={(e) => { e.stopPropagation(); navigate(MEETING_ROUTE(m._id)); }}>Start</Button>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
+          <div className="flex justify-end pt-2 border-t border-[var(--color-border)]">
+             <Button variant="secondary" onClick={() => setShowStart(false)}>Close</Button>
           </div>
         </div>
       </Modal>
