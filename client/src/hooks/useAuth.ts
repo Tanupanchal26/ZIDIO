@@ -9,15 +9,25 @@ export const useAuth = () => {
   const navigate = useNavigate();
 
   const login = async (email: string, password: string) => {
-    const res = (await authService.login({ email, password })) as unknown as { user: any; token: string };
-    setUser(res.user, res.token);
-    toast.success(`Welcome back, ${res.user.name}!`);
+    const res = (await authService.login({ email, password })) as any;
+    const userData = res.data?.user || res.user;
+    const tokenStr = res.data?.accessToken || res.accessToken || res.token;
+    
+    if (!userData) throw new Error('User data not received');
+    
+    setUser(userData, tokenStr);
+    toast.success(`Welcome back, ${userData.name}!`);
     navigate(ROUTES.DASHBOARD);
   };
 
   const register = async (name: string, email: string, password: string) => {
-    const res = (await authService.register({ name, email, password })) as unknown as { user: any; token: string };
-    setUser(res.user, res.token);
+    const res = (await authService.register({ name, email, password })) as any;
+    const userData = res.data?.user || res.user;
+    const tokenStr = res.data?.accessToken || res.accessToken || res.token;
+
+    if (!userData) throw new Error('User data not received');
+
+    setUser(userData, tokenStr);
     toast.success('Account created!');
     navigate(ROUTES.DASHBOARD);
   };

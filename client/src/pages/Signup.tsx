@@ -44,8 +44,16 @@ const Signup = () => {
     setLoading(true);
     try {
       const res = await axiosClient.post('/auth/signup', { name: form.name, email: form.email, password: form.password, role: 'member' }) as any;
-      dispatch(setCredentials({ user: res.user, accessToken: res.accessToken ?? res.token, refreshToken: res.refreshToken }));
-      toast.success(`Welcome, ${res.user.name}!`);
+      
+      const userData = res.data?.user || res.user;
+      const token = res.data?.accessToken || res.accessToken || res.token;
+
+      if (!userData) {
+        throw new Error('User data not received from server');
+      }
+
+      dispatch(setCredentials({ user: userData, accessToken: token }));
+      toast.success(`Welcome, ${userData.name}!`);
       navigate(ROUTES.DASHBOARD);
     } catch (err: any) {
       toast.error(err.message || 'Registration failed. Please try again.');

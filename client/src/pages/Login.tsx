@@ -25,8 +25,16 @@ const Login = () => {
     setLoading(true);
     try {
       const res = await axiosClient.post('/auth/login', { email, password }) as any;
-      dispatch(setCredentials({ user: res.user, accessToken: res.accessToken ?? res.token, refreshToken: res.refreshToken }));
-      toast.success(`Welcome back, ${res.user.name}!`);
+      
+      const userData = res.data?.user || res.user;
+      const token = res.data?.accessToken || res.accessToken || res.token;
+
+      if (!userData) {
+        throw new Error('User data not received from server');
+      }
+
+      dispatch(setCredentials({ user: userData, accessToken: token }));
+      toast.success(`Welcome back, ${userData.name}!`);
       navigate(from, { replace: true });
     } catch (err: any) {
       toast.error(err.message || 'Login failed. Please check your credentials.');
