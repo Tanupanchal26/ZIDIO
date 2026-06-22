@@ -1,7 +1,7 @@
 // @ts-nocheck
 const router      = require('express').Router();
 const ctrl        = require('../controllers/auth');
-const { authenticate } = require('../middleware/auth.middleware');
+const { authenticate, authorize } = require('../middleware/auth.middleware');
 const validate    = require('../middleware/validate.middleware');
 const { authLimiter } = require('../middleware/rateLimit.middleware');
 const V           = require('../validators/auth.validator');
@@ -54,6 +54,8 @@ router.post('/change-password',
   validate(V.changePassword),
   ctrl.changePassword
 );
+
+router.post('/unlock/:id', authorize('admin'), ctrl.unlockAccount);
 
 module.exports = router;
 

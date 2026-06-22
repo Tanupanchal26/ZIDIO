@@ -6,6 +6,7 @@ const Tenant      = require('../models/Tenant');
 const jwtService  = require('./jwt.service');
 const emailService = require('./email.service');
 const ApiError    = require('../utils/ApiError');
+const logger      = require('../utils/logger');
 const { USER_STATUS, AUTH } = require('../constants');
 
 // Generic "invalid credentials" message — never reveal whether email exists
@@ -64,7 +65,10 @@ const login = async ({ email, password }) => {
   const user = await userRepo.findByEmailForAuth(email);
 
   // Constant-time response — don't reveal "email not found"
-  if (!user) throw ApiError.unauthorized(CRED_ERROR);
+  if (!user) {
+    logger.warn(`Login failed: Invalid email (${email})`);
+    throw ApiError.unauthorized(CRED_ERROR);
+  }
 
   // Account status checks
   if (user.status === USER_STATUS.BANNED)
@@ -76,6 +80,7 @@ const login = async ({ email, password }) => {
   // Lockout check
   if (user.isLocked) {
     const minutesLeft = Math.ceil((user.lockUntil - Date.now()) / 60000);
+    logger.warn(`Login failed: Account locked (${email})`);
     throw ApiError.forbidden(
       `Account temporarily locked. Try again in ${minutesLeft} minute(s).`
     );
@@ -84,6 +89,7 @@ const login = async ({ email, password }) => {
   const isMatch = await user.comparePassword(password);
 
   if (!isMatch) {
+    logger.warn(`Login failed: Invalid password (${email})`);
     await user.incLoginAttempts();
     const remaining = AUTH.MAX_LOGIN_ATTEMPTS - (user.loginAttempts + 1);
     const msg = remaining > 0
@@ -199,6 +205,15 @@ const changePassword = async (userId, currentPassword, newPassword) => {
   return user;
 };
 
+// ── 10. Unlock Account (Admin only) ───────────────────────────────────────────
+const unlockAccount = async (userId) => {
+  const user = await userRepo.updateById(userId, undefined, {
+    $set: { loginAttempts: 0 },
+    $unset: { lockUntil: 1 }
+  });
+  return user;
+};
+
 module.exports = {
   signup,
   login,
@@ -209,6 +224,7 @@ module.exports = {
   resetPassword,
   verifyEmail,
   changePassword,
+  unlockAccount,
 };
 
 export {};

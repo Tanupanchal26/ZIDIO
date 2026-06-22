@@ -2,6 +2,7 @@
 const authService  = require('../../services/auth.service');
 const asyncHandler = require('../../utils/asyncHandler');
 const ApiResponse  = require('../../utils/ApiResponse');
+const logger       = require('../../utils/logger');
 const { setRefreshCookie, clearRefreshCookie } = require('../../services/jwt.service');
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -20,6 +21,7 @@ const userPayload = (user) => ({
   isVerified: user.isVerified,
   status:     user.status,
   lastLogin:  user.lastLogin,
+  tenantId:   user.tenantId,
 });
 
 // ── POST /auth/signup ─────────────────────────────────────────────────────────
@@ -69,6 +71,10 @@ exports.logoutAll = asyncHandler(async (req, res) => {
 // ── POST /auth/refresh-token ──────────────────────────────────────────────────
 exports.refreshToken = asyncHandler(async (req, res) => {
   const rawToken = getRefreshToken(req);
+  if (!rawToken) {
+    logger.info('Refresh failed: Missing refresh token');
+    return res.status(401).json({ success: false, message: 'Refresh token required' });
+  }
   const { user, accessToken, refreshToken } = await authService.refreshTokens(rawToken);
 
   setRefreshCookie(res, refreshToken);  // rotate cookie
@@ -113,5 +119,10 @@ exports.getMe = asyncHandler(async (req, res) =>
   ApiResponse.ok(res, userPayload(req.user), 'Profile retrieved')
 );
 
+// ── POST /auth/unlock/:id ─────────────────────────────────────────────────────
+exports.unlockAccount = asyncHandler(async (req, res) => {
+  await authService.unlockAccount(req.params.id);
+  return ApiResponse.ok(res, null, 'Account unlocked successfully');
+});
 
 export {};
