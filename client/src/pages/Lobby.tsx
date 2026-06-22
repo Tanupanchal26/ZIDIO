@@ -13,20 +13,6 @@ import { PageContainer } from '../components/layout/PageContainer';
 import { PageHeader } from '../components/layout/PageHeader';
 import { useAppSelector } from '../hooks/useAppDispatch';
 
-import { useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Plus, Hash, Calendar, Clock, Video, ArrowRight, Users } from 'lucide-react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { meetingService } from '../api/meeting.api';
-import { MEETING_ROUTE } from '../constants';
-import Card from '../components/common/Card';
-import Button from '../components/common/Button';
-import Badge from '../components/common/Badge';
-import Modal from '../components/common/Modal';
-import toast from 'react-hot-toast';
-import { PageContainer } from '../components/layout/PageContainer';
-import { PageHeader } from '../components/layout/PageHeader';
-import { useAppSelector } from '../hooks/useAppDispatch';
 
 const fmt = (iso: string) => {
   if (!iso) return '—';
