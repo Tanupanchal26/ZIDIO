@@ -88,10 +88,7 @@ const AppRoutes = () => {
           <Route path={ROUTES.DASHBOARD}     element={<Suspense fallback={<PageFallback />}><Dashboard /></Suspense>} />
           <Route path={ROUTES.LOBBY}         element={<Suspense fallback={<PageFallback />}><Lobby /></Suspense>} />
           
-          {/* Admin only route */}
-          <Route element={<RoleProtectedRoute allowedRoles={['admin']} />}>
-            <Route path={ROUTES.ANALYTICS}   element={<Suspense fallback={<PageFallback />}><Analytics /></Suspense>} />
-          </Route>
+          <Route path={ROUTES.ANALYTICS}   element={<Suspense fallback={<PageFallback />}><Analytics /></Suspense>} />
 
           <Route path={ROUTES.TASKS}         element={<Suspense fallback={<PageFallback />}><Tasks /></Suspense>} />
           <Route path={ROUTES.SETTINGS}      element={<Suspense fallback={<PageFallback />}><Settings /></Suspense>} />
