@@ -5,7 +5,7 @@ import { useSocket } from './useSocket';
 import { meetingService } from '../api/meeting.api';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
-import { ROUTES } from '../utils/constants';
+import { ROUTES } from '../constants';
 
 export const useMeeting = (roomId?: string) => {
   const { socket } = useSocket();

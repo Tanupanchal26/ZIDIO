@@ -1,5 +1,6 @@
 // @ts-nocheck
-const User       = require('../models/User');
+const userService = require('../services/user.service');
+const { isBlacklisted } = require('../utils/redisBlacklist');
 const { verifyAccessToken } = require('../services/jwt.service');
 const ApiError   = require('../utils/ApiError');
 const asyncHandler = require('../utils/asyncHandler');
@@ -30,8 +31,13 @@ exports.authenticate = asyncHandler(async (req, res, next) => {
     const msg = err.name === 'TokenExpiredError' ? 'Access token expired' : 'Invalid access token';
     throw ApiError.unauthorized(msg);
   }
+  // Check revocation blacklist
+  const blacklisted = await isBlacklisted(token);
+  if (blacklisted) {
+    throw ApiError.unauthorized('Token revoked');
+  }
 
-  const user = await User.findById(decoded.id);
+  const user = await userService.getUserForAuth(decoded.id);
   if (!user) throw ApiError.unauthorized('User no longer exists');
 
   // Account state checks

@@ -19,7 +19,7 @@ import AIAssistant from '../components/ai/AIAssistant';
 import { useMeetingStore } from '../store/meeting/meeting.store';
 import { useWebRTC } from '../hooks/useWebRTC';
 import { useTranscription } from '../hooks/useTranscription';
-import { useAuthStore } from '../store/auth/auth.store';
+import { useAppSelector } from '../hooks/useAppDispatch';
 import { useFocusTrap } from '../hooks/useFocusTrap';
 
 import Badge from '../components/common/Badge';
@@ -102,7 +102,7 @@ const NotesPanel = () => {
 const MeetingRoom = () => {
   const { id }     = useParams<{ id: string }>();
   const navigate   = useNavigate();
-  const { user }   = useAuthStore();
+  const user = useAppSelector((s) => s.auth.user);
 
   const [activePanel, setActivePanel] = useState<Panel>('chat');
   const [panelOpen,   setPanelOpen]   = useState(true);

@@ -12,8 +12,8 @@ const handler = (req, res) =>
 
 // ── General API limiter — 100 req / 15 min per IP ────────────────────────────
 const apiLimiter = rateLimit({
-  windowMs:         15 * 60 * 1000,
-  max:              100,
+  windowMs:         60 * 1000,
+  max:              120,
   standardHeaders:  true,   // Return rate limit info in RateLimit-* headers
   legacyHeaders:    false,
   handler,

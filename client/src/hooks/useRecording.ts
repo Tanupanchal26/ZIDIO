@@ -1,13 +1,13 @@
 import { useRef } from 'react';
 import { useMeetingStore } from '../store/meeting/meeting.store';
-import { useAuthStore } from '../store/auth/auth.store';
+import { useAppSelector } from './useAppDispatch';
 import { recordingService } from '../api/recording.api';
 import { getSocket } from '../utils/socket';
 import toast from 'react-hot-toast';
 
 export const useRecording = (meetingId: string) => {
   const { isRecording, toggleRecording } = useMeetingStore();
-  const { user } = useAuthStore();
+  const user = useAppSelector((s) => s.auth.user);
   
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);

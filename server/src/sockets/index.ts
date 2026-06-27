@@ -1,6 +1,8 @@
 // @ts-nocheck
 const { verifyAccessToken } = require('../services/jwt.service');
-const User = require('../models/User');
+const userService = require('../services/user.service');
+const { isBlacklisted } = require('../utils/redisBlacklist');
+const socketRateLimiter = require('../middleware/socketRateLimiter');
 const chatSocket         = require('./chat.socket');
 const meetingSocket      = require('./meeting.socket');
 const notificationSocket = require('./notification.socket');
@@ -9,14 +11,19 @@ const logger = require('../utils/logger');
 
 const initSockets = (io) => {
   // ── Auth middleware ────────────────────────────────────────────────────────
-  io.use(async (socket, next) => {
+  io.use(socketRateLimiter);
+io.use(async (socket, next) => {
     try {
       const token = socket.handshake.auth?.token ||
                     socket.handshake.headers?.authorization?.split(' ')[1];
       if (!token) return next(new Error('Authentication required'));
 
       const decoded = verifyAccessToken(token);
-      const user    = await User.findById(decoded.id).select('name email avatar tenantId role status');
+      // Check token blacklist
+      const blacklisted = await isBlacklisted(token);
+      if (blacklisted) return next(new Error('Token revoked'));
+
+      const user = await userService.getUserForAuth(decoded.id);
       if (!user) return next(new Error('User not found'));
       if (user.status === 'banned' || user.status === 'locked') return next(new Error('Account restricted'));
 

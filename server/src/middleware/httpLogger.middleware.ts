@@ -1,6 +1,6 @@
 // @ts-nocheck
 const morgan = require('morgan');
-const logger = require('../utils/logger');
+const logger = require('../common/logger').default;
 
 // Pipe Morgan output into Winston so all logs go through one system
 const stream = {

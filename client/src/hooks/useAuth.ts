@@ -1,21 +1,21 @@
-import { useAuthStore } from '../store/auth/auth.store';
+import { useAppDispatch, useAppSelector } from './useAppDispatch';
+import { setCredentials, clearAuth } from '../store/auth/auth.slice';
 import { authService } from '../api/auth.api';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { ROUTES } from '../utils/constants';
+import { ROUTES } from '../constants';
 
 export const useAuth = () => {
-  const { user, token, isAuthenticated, setUser, clearAuth } = useAuthStore();
+  const dispatch = useAppDispatch();
+  const { user, accessToken: token, isAuthenticated } = useAppSelector((s) => s.auth);
   const navigate = useNavigate();
 
   const login = async (email: string, password: string) => {
     const res = (await authService.login({ email, password })) as any;
     const userData = res.data?.user || res.user;
-    const tokenStr = res.data?.accessToken || res.accessToken || res.token;
-    
+    const accessToken = res.data?.accessToken || res.accessToken || res.token;
     if (!userData) throw new Error('User data not received');
-    
-    setUser(userData, tokenStr);
+    dispatch(setCredentials({ user: userData, accessToken }));
     toast.success(`Welcome back, ${userData.name}!`);
     navigate(ROUTES.DASHBOARD);
   };
@@ -23,17 +23,15 @@ export const useAuth = () => {
   const register = async (name: string, email: string, password: string) => {
     const res = (await authService.register({ name, email, password })) as any;
     const userData = res.data?.user || res.user;
-    const tokenStr = res.data?.accessToken || res.accessToken || res.token;
-
+    const accessToken = res.data?.accessToken || res.accessToken || res.token;
     if (!userData) throw new Error('User data not received');
-
-    setUser(userData, tokenStr);
+    dispatch(setCredentials({ user: userData, accessToken }));
     toast.success('Account created!');
     navigate(ROUTES.DASHBOARD);
   };
 
   const logout = () => {
-    clearAuth();
+    dispatch(clearAuth());
     navigate(ROUTES.LOGIN);
     toast.success('Signed out');
   };

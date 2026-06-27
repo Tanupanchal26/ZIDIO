@@ -1,24 +1,31 @@
 // @ts-nocheck
-const User = require('../../models/User');
+const asyncHandler = require('../../utils/asyncHandler');
+const ApiResponse = require('../../utils/ApiResponse');
+const logger = require('../../common/logger').default;
+const userService = require('../../services/user.service');
 
-exports.getProfile = async (req, res) => {
-  const user = await User.findById(req.user.id).select('-password');
-  res.json(user);
-};
+// Get current user's profile
+exports.getProfile = asyncHandler(async (req, res) => {
+  const user = await userService.getProfile(req.user.id);
+  ApiResponse.ok(res, user, 'Profile retrieved');
+});
 
-exports.updateProfile = async (req, res) => {
-  const user = await User.findByIdAndUpdate(req.user.id, req.body, { new: true }).select('-password');
-  res.json(user);
-};
+// Update current user's profile
+exports.updateProfile = asyncHandler(async (req, res) => {
+  const user = await userService.updateProfile(req.user.id, req.body);
+  ApiResponse.ok(res, user, 'Profile updated');
+});
 
-exports.deleteAccount = async (req, res) => {
-  await User.findByIdAndDelete(req.user.id);
-  res.json({ message: 'Account deleted' });
-};
+// Delete current user's account
+exports.deleteAccount = asyncHandler(async (req, res) => {
+  await userService.deleteAccount(req.user.id);
+  ApiResponse.ok(res, null, 'Account deleted');
+});
 
-exports.getAllUsers = async (req, res) => {
-  const users = await User.find().select('-password');
-  res.json(users);
-};
+// Get all users (admin)
+exports.getAllUsers = asyncHandler(async (req, res) => {
+  const users = await userService.getAllUsers();
+  ApiResponse.ok(res, users, 'Users list retrieved');
+});
 
 export {};

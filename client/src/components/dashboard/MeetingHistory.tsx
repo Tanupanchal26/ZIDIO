@@ -1,7 +1,7 @@
 import { Video, Clock, ArrowRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Badge from '../common/Badge';
-import { MEETING_ROUTE } from '../../utils/constants';
+import { MEETING_ROUTE } from '../../constants';
 
 const MEETINGS = [
   { _id: 'm1', title: 'Q4 Product Review', startedAt: new Date(Date.now() - 3600000).toISOString(), isActive: true },

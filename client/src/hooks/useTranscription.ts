@@ -1,13 +1,13 @@
 import { useEffect, useRef } from 'react';
 import { useMeetingStore } from '../store/meeting/meeting.store';
 import { useAIStore } from '../store/ai/ai.store';
-import { useAuthStore } from '../store/auth/auth.store';
+import { useAppSelector } from './useAppDispatch';
 import { getSocket } from '../utils/socket';
 
 export const useTranscription = (meetingId: string) => {
   const { isMuted } = useMeetingStore();
   const { setTranscribing, appendTranscript } = useAIStore();
-  const { user } = useAuthStore();
+  const user = useAppSelector((s) => s.auth.user);
   const recognitionRef = useRef<any>(null);
   const socket = getSocket();
 

@@ -2,8 +2,8 @@
 const authService  = require('../../services/auth.service');
 const asyncHandler = require('../../utils/asyncHandler');
 const ApiResponse  = require('../../utils/ApiResponse');
-const logger       = require('../../utils/logger');
-const { setRefreshCookie, clearRefreshCookie } = require('../../services/jwt.service');
+const logger       = require('../common/logger').default;
+const { addToBlacklist } = require('../../utils/redisBlacklist');
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -55,6 +55,11 @@ exports.login = asyncHandler(async (req, res) => {
 // ── POST /auth/logout ─────────────────────────────────────────────────────────
 exports.logout = asyncHandler(async (req, res) => {
   const rawRefreshToken = getRefreshToken(req);
+  // Revoke access token if present
+  const accessToken = req.headers.authorization?.split(' ')[1] || req.headers['x-access-token'] || req.query.token;
+  if (accessToken) await addToBlacklist(accessToken);
+  // Revoke refresh token
+  if (rawRefreshToken) await addToBlacklist(rawRefreshToken);
   await authService.logout(req.user.id, rawRefreshToken);
 
   clearRefreshCookie(res);

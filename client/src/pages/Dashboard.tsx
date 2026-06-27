@@ -6,7 +6,7 @@ import {
   Sparkles, Bell, TrendingUp, Clock, Plus, ArrowRight, Zap, Loader2
 } from 'lucide-react';
 import { useAppSelector } from '../hooks/useAppDispatch';
-import { ROUTES, MEETING_ROUTE } from '../utils/constants';
+import { ROUTES, MEETING_ROUTE } from '../constants';
 import { motion as ds } from '../design-system/motion';
 import { clsx } from 'clsx';
 import { PageContainer } from '../components/layout/PageContainer';

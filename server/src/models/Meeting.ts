@@ -63,4 +63,4 @@ meetingSchema.index({ tenantId: 1, createdAt: -1 });
 
 module.exports = mongoose.model('Meeting', meetingSchema);
 
-export {};
+;

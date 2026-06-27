@@ -6,9 +6,8 @@ import { teamService, type Team } from '../api/team.api';
 import { toTeam } from '../constants';
 import { useAppSelector } from '../hooks/useAppDispatch';
 import Card from '../components/common/Card';
-import Button from '../components/common/Button';
-import Badge from '../components/common/Badge';
-import Modal from '../components/common/Modal';
+import { Button } from '../shared/ui';
+import { Modal } from '../shared/ui';
 import Loader from '../components/common/Loader';
 import toast from 'react-hot-toast';
 

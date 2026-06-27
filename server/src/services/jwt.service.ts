@@ -3,6 +3,8 @@ const jwt    = require('jsonwebtoken');
 const crypto = require('crypto');
 const { jwt: jwtCfg, isProd, clientUrl } = require('../config/env');
 const { AUTH } = require('../constants');
+// Refresh token model for persisted storage
+const RefreshToken = require('../models/refreshToken.model');
 
 // ── Token generation ──────────────────────────────────────────────────────────
 
@@ -22,12 +24,19 @@ const generateAccessToken = (payload) =>
  * Signed with a DIFFERENT secret (JWT_REFRESH_SECRET).
  * A SHA-256 hash of this token is stored in the DB for rotation.
  */
-const generateRefreshToken = (userId) =>
-  jwt.sign({ id: userId }, jwtCfg.refreshSecret, {
+const generateRefreshToken = async (userId) => {
+  const token = jwt.sign({ id: userId }, jwtCfg.refreshSecret, {
     expiresIn: jwtCfg.refreshExpiresIn,  // '7d'
     issuer:    'intellmeet',
     audience:  'intellmeet-client',
   });
+  // Compute expiration date (7 days = 7 * 24 * 60 * 60 * 1000 ms)
+  const ttlMs = 7 * 24 * 60 * 60 * 1000;
+  const expiresAt = new Date(Date.now() + ttlMs);
+  const hashed = hashToken(token);
+  await RefreshToken.create({ tokenHash: hashed, userId, expiresAt });
+  return token;
+};
 
 // ── Token verification ────────────────────────────────────────────────────────
 
@@ -37,11 +46,21 @@ const verifyAccessToken = (token) =>
     audience: 'intellmeet-client',
   });
 
-const verifyRefreshToken = (token) =>
-  jwt.verify(token, jwtCfg.refreshSecret, {
+/**
+ * Verify a refresh token and ensure it exists in the DB (hash match).
+ */
+const verifyRefreshToken = async (token) => {
+  const payload = jwt.verify(token, jwtCfg.refreshSecret, {
     issuer:   'intellmeet',
     audience: 'intellmeet-client',
   });
+  const hashed = hashToken(token);
+  const record = await RefreshToken.findOne({ tokenHash: hashed, userId: payload.id });
+  if (!record) throw new Error('Refresh token not found or revoked');
+  return payload;
+};
+
+// Note: verifyRefreshToken is async and defined above to include DB check.
 
 // ── Hash helpers ──────────────────────────────────────────────────────────────
 

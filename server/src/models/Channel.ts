@@ -23,4 +23,4 @@ channelSchema.index({ tenantId: 1, team: 1 });
 
 module.exports = mongoose.model('Channel', channelSchema);
 
-export {};
+

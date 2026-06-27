@@ -1,5 +1,5 @@
 import { io, type Socket } from 'socket.io-client';
-import { SOCKET_URL } from './constants';
+import { SOCKET_URL } from '../constants';
 
 export type ConnectionState = 'connected' | 'connecting' | 'disconnected' | 'error';
 
