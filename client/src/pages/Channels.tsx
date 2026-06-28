@@ -9,42 +9,20 @@ import { useSocket, safeEmit } from '../hooks/useSocket';
 import { useChatStore, type ChannelMessage } from '../store/chat/chat.store';
 import { usePresence } from '../hooks/usePresence';
 import { toChannel } from '../constants';
-import { Button } from '../shared/ui/Button';
+import { Button } from '../shared/ui';
 import { Modal } from '../shared/ui/Modal';
 import Loader from '../components/common/Loader';
+import { ChannelHeader } from '../components/channels/ChannelHeader';
+
+import { MessageList } from '../features/chat/components/MessageList';
+import { MessageInput } from '../features/chat/components/MessageInput';
+import { TypingIndicator } from '../shared/components/TypingIndicator';
 import toast from 'react-hot-toast';
 import { clsx } from 'clsx';
 
 const EMOJIS = ['👍', '❤️', '😂', '🎉', '🔥', '👀'];
 
-/* ─── Delivery icon ────────────────────────────────────────────────────────── */
-const DeliveryIcon = ({ state }: { state?: string }) => {
-  if (state === 'sending')   return <span className="text-[9px] text-[var(--color-text-dim)]">⏳</span>;
-  if (state === 'sent')      return <span className="text-[9px] text-[var(--color-text-dim)]">✓</span>;
-  if (state === 'delivered') return <span className="text-[9px] text-[var(--color-text-muted)]">✓✓</span>;
-  if (state === 'read')      return <span className="text-[9px] text-indigo-650">✓✓</span>;
-  if (state === 'failed')    return <span className="text-[9px] text-red-500 font-bold">!</span>;
-  return null;
-};
 
-/* ─── Typing indicator ─────────────────────────────────────────────────────── */
-const TypingIndicator = ({ names }: { names: string[] }) => {
-  if (!names.length) return null;
-  const label = names.length === 1
-    ? `${names[0]} is typing…`
-    : `${names.slice(0, 2).join(', ')} are typing…`;
-  return (
-    <div className="flex items-center gap-2 px-5 py-1.5 bg-[var(--color-bg-tertiary)]/40 border-t border-[var(--color-border)]">
-      <div className="flex gap-0.5">
-        {[0, 1, 2].map(i => (
-          <span key={i} className="w-1.5 h-1.5 rounded-full bg-[var(--color-text-muted)] animate-bounce"
-            style={{ animationDelay: `${i * 0.15}s` }} />
-        ))}
-      </div>
-      <span className="text-[11px] text-[var(--color-text-muted)]">{label}</span>
-    </div>
-  );
-};
 
 /* ─── ChannelView ──────────────────────────────────────────────────────────── */
 const ChannelView = ({ channel }: { channel: Channel }) => {
@@ -53,6 +31,8 @@ const ChannelView = ({ channel }: { channel: Channel }) => {
   const { socket } = useSocket();
   const store   = useChatStore();
   const { isOnline } = usePresence();
+  const navigate = useNavigate();
+  const isAdmin = user?.role === 'admin' || user?.role === 'super_admin';
 
   const [content,     setContent]     = useState('');
   const [showEmoji,   setShowEmoji]   = useState<string | null>(null);
@@ -193,132 +173,30 @@ const ChannelView = ({ channel }: { channel: Channel }) => {
 
   return (
     <div className="flex flex-col flex-1 h-full min-h-0 bg-[var(--color-bg)]/10">
-      {/* Header */}
-      <div className="flex items-center gap-3 px-6 py-4 border-b border-[var(--color-border)] bg-[var(--color-bg-secondary)]/30 backdrop-blur-md flex-shrink-0">
-        {channel.type === 'private'
-          ? <Lock size={16} className="text-[var(--color-text-secondary)]" />
-          : <Hash size={16} className="text-[var(--color-text-secondary)]" />}
-        <div className="flex-1">
-          <p className="font-bold text-[var(--color-text)] text-sm">{channel.name}</p>
-          {channel.description && <p className="text-xs text-[var(--color-text-muted)] mt-0.5">{channel.description}</p>}
-        </div>
-      </div>
+      <ChannelHeader channel={channel} isAdmin={isAdmin} onBack={() => navigate('/teams')} />
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-6 py-5 flex flex-col gap-4 min-h-0 scrollbar-thin">
-        {isLoading ? (
-          <div className="flex items-center justify-center h-full"><Loader /></div>
-        ) : messages.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full gap-2 text-center opacity-60">
-            <Hash size={32} className="text-[var(--color-text-dim)]" />
-            <p className="text-sm text-[var(--color-text-muted)]">No messages yet. Start the conversation!</p>
-          </div>
-        ) : (
-          messages.map((msg) => {
-            const isMine = msg.sender._id === user?.id;
-            return (
-              <div key={msg._id} className={clsx('flex gap-3 group relative', isMine && 'flex-row-reverse')}>
-                {/* Avatar with online dot */}
-                <div className="relative flex-shrink-0">
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#6366F1] to-purple-500 flex items-center justify-center text-white text-xs font-bold shadow-sm">
-                    {msg.sender.name.charAt(0).toUpperCase()}
-                  </div>
-                  {isOnline(msg.sender._id) && (
-                    <Circle size={8} className="absolute -bottom-0.5 -right-0.5 text-emerald-500 fill-emerald-500 ring-2 ring-[var(--color-bg-secondary)]" />
-                  )}
-                </div>
-
-                <div className={clsx('flex flex-col gap-1 max-w-[70%]', isMine && 'items-end')}>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-semibold text-[var(--color-text-secondary)]">{msg.sender.name}</span>
-                    <span className="text-[10px] text-[var(--color-text-dim)]">
-                      {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </span>
-                    {isMine && <DeliveryIcon state={msg.delivery} />}
-                  </div>
-
-                  <div className={clsx(
-                    'px-4 py-2.5 rounded-2xl text-[13px] leading-relaxed transition-all border',
-                    msg.isDeleted
-                      ? 'italic text-[var(--color-text-dim)] bg-transparent border-dashed border-[var(--color-border)]'
-                      : isMine
-                        ? 'bg-indigo-600 text-white border-indigo-700 shadow-sm rounded-tr-none'
-                        : 'bg-[var(--color-bg-tertiary)] text-[var(--color-text)] border-[var(--color-border)] rounded-tl-none'
-                  )}>
-                    {msg.content}
-                    {msg.isEdited && !msg.isDeleted && <span className="text-[10px] opacity-60 ml-1.5">(edited)</span>}
-                  </div>
-
-                  {/* Reactions */}
-                  {msg.reactions.length > 0 && (
-                    <div className="flex flex-wrap gap-1 mt-1">
-                      {msg.reactions.map((r) => (
-                        <button key={r.emoji} onClick={() => handleReact(msg._id, r.emoji)}
-                          className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-[var(--color-bg-tertiary)] border border-[var(--color-border)] text-[11px] hover:border-[var(--color-border-strong)] text-[var(--color-text-secondary)] transition-colors cursor-pointer">
-                          <span>{r.emoji}</span>
-                          <span className="text-[var(--color-text-muted)] font-bold">{r.users.length}</span>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* Hover actions */}
-                {!msg.isDeleted && (
-                  <div className={clsx(
-                    'absolute top-2.5 opacity-0 group-hover:opacity-100 flex items-center gap-1 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl px-2 py-1 shadow-md transition-opacity z-10',
-                    isMine ? 'right-10' : 'left-10'
-                  )}>
-                    {/* Emoji quick-pick */}
-                    <div className="relative">
-                      <button onClick={() => setShowEmoji(showEmoji === msg._id ? null : msg._id)}
-                        className="p-1 text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors text-xs cursor-pointer">
-                        😊
-                      </button>
-                      {showEmoji === msg._id && (
-                        <div className="absolute bottom-8 left-0 flex gap-1.5 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl px-2.5 py-1.5 shadow-lg z-20">
-                          {EMOJIS.map((e) => (
-                            <button key={e} onClick={() => handleReact(msg._id, e)}
-                              className="text-base hover:scale-125 transition-transform cursor-pointer">{e}</button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                    {isMine && (
-                      <button onClick={() => deleteMutation.mutate(msg._id)}
-                        className="p-1 text-[var(--color-text-muted)] hover:text-red-650 transition-colors cursor-pointer">
-                        <Trash2 size={12} />
-                      </button>
-                    )}
-                  </div>
-                )}
-              </div>
-            );
-          })
-        )}
-        <div ref={bottomRef} />
-      </div>
+      <MessageList
+          messages={messages}
+          userId={user?.id}
+          isOnline={isOnline}
+          onReact={handleReact}
+          onDelete={msgId => deleteMutation.mutate(msgId)}
+      />
 
       {/* Typing indicator */}
       <TypingIndicator names={typingNames} />
 
       {/* Input */}
-      <div className="px-6 py-4 border-t border-[var(--color-border)] bg-[var(--color-bg-secondary)]/20 flex-shrink-0">
-        <div className="flex items-end gap-3 bg-[var(--color-bg-tertiary)]/70 border border-[var(--color-border)] focus-within:border-[var(--color-border-strong)] focus-within:shadow-[0_0_0_3px_rgba(66,67,65,0.08)] rounded-2xl px-4 py-3 transition-all">
-          <textarea
-            value={content}
-            onChange={(e) => { setContent(e.target.value); handleTyping(); }}
-            onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
-            placeholder={`Message #${channel.name}`}
-            rows={1}
-            className="flex-1 bg-transparent text-[13px] text-[var(--color-text)] placeholder-[var(--color-text-dim)] resize-none outline-none max-h-32"
-          />
-          <button onClick={handleSend} disabled={!content.trim()}
-            className="p-2 rounded-xl bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-30 disabled:hover:bg-indigo-600 transition-all flex-shrink-0 shadow-[0_2px_8px_rgba(99,102,241,0.2)] cursor-pointer">
-            <Send size={13} />
-          </button>
-        </div>
-      </div>
+      <MessageInput
+        content={content}
+        setContent={setContent}
+        handleSend={handleSend}
+        handleTyping={handleTyping}
+        showEmoji={showEmoji}
+        setShowEmoji={setShowEmoji}
+        emojis={EMOJIS}
+      />
     </div>
   );
 };

@@ -1,11 +1,11 @@
 import { MicOff, Crown, UserX } from 'lucide-react';
 import { useMeetingStore } from '../../store/meeting/meeting.store';
-import { useAuthStore } from '../../store/auth/auth.store';
+import { useAppSelector } from '../../hooks/useAppDispatch';
 import { clsx } from 'clsx';
 
 const ParticipantList = () => {
   const { participants, currentMeeting, isMuted, isVideoOff } = useMeetingStore();
-  const { user } = useAuthStore();
+  const user = useAppSelector((s) => s.auth.user);
   const isHostUser = user?.id === currentMeeting?.host;
 
   const all = [

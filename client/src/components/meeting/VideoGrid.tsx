@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { MicOff, VideoOff } from 'lucide-react';
 import { useMeetingStore } from '../../store/meeting/meeting.store';
-import { useAuthStore } from '../../store/auth/auth.store';
+import { useAppSelector } from '../../hooks/useAppDispatch';
 import { clsx } from 'clsx';
 
 const VideoTile = ({ name, isMuted, isVideoOff, isScreenSharing, isActive, isLocal, stream, isSingle }: {
@@ -73,7 +73,7 @@ const VideoTile = ({ name, isMuted, isVideoOff, isScreenSharing, isActive, isLoc
 
 const VideoGrid = ({ localStream, remoteStreams }: { localStream?: MediaStream | null; remoteStreams?: Map<string, MediaStream> }) => {
   const { participants, isVideoOff, isMuted, isScreenSharing } = useMeetingStore();
-  const { user } = useAuthStore();
+  const user = useAppSelector((s) => s.auth.user);
   
   const allTiles = [
     { id: 'local', name: user?.name || 'You', isMuted, isVideoOff, isScreenSharing, isLocal: true, isActive: true, stream: localStream },

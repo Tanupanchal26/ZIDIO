@@ -115,9 +115,14 @@ export const useWebRTC = ({ roomId, userId }: WebRTCConfig) => {
 
   // Initial Audio Setup
   useEffect(() => {
+    let isMounted = true;
     const initAudio = async () => {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        if (!isMounted) {
+          stream.getTracks().forEach(t => t.stop());
+          return;
+        }
         stream.getAudioTracks().forEach(t => { t.enabled = !isMuted; });
         localStreamRef.current = stream;
         setLocalStream(new MediaStream(stream.getTracks()));
@@ -128,7 +133,9 @@ export const useWebRTC = ({ roomId, userId }: WebRTCConfig) => {
     initAudio();
 
     return () => {
+      isMounted = false;
       localStreamRef.current?.getTracks().forEach(t => t.stop());
+      screenStreamRef.current?.getTracks().forEach(t => t.stop());
       peersRef.current.forEach(pc => pc.close());
       peersRef.current.clear();
     };

@@ -1,14 +1,14 @@
 import { useState, useRef, useEffect } from 'react';
 import { Send } from 'lucide-react';
 import { useChat } from '../../hooks/useChat';
-import { useAuthStore } from '../../store/auth/auth.store';
+import { useAppSelector } from '../../hooks/useAppDispatch';
 import { clsx } from 'clsx';
 
 const fmt = (ts: string) => new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
 const ChatBox = ({ meetingId }: { meetingId: string }) => {
   const [input, setInput] = useState('');
-  const { user } = useAuthStore();
+  const user = useAppSelector((s) => s.auth.user);
   const { messages, typingUsers, sendMessage, sendTyping } = useChat(meetingId);
   const bottomRef = useRef<HTMLDivElement>(null);
   const typingTimeout = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);

@@ -1,2 +1,2 @@
-export { Button } from './Button';
+export { default as Button } from '../../components/common/Button';
 export { Modal } from './Modal';

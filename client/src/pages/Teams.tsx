@@ -8,6 +8,7 @@ import { useAppSelector } from '../hooks/useAppDispatch';
 import Card from '../components/common/Card';
 import { Button } from '../shared/ui';
 import { Modal } from '../shared/ui';
+import Badge from '../components/common/Badge';
 import Loader from '../components/common/Loader';
 import toast from 'react-hot-toast';
 
