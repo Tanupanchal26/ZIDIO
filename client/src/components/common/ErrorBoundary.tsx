@@ -1,5 +1,6 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
+import { captureException } from '../../utils/sentry';
 
 interface Props { children: ReactNode; fallback?: ReactNode; }
 interface State { hasError: boolean; message: string; }
@@ -12,7 +13,7 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
-    console.error('[ErrorBoundary]', error, info);
+    captureException(error, { componentStack: info.componentStack ?? '' });
   }
 
   reset = () => this.setState({ hasError: false, message: '' });

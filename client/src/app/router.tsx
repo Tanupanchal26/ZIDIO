@@ -85,7 +85,6 @@ const AppRoutes = () => {
             path={ROUTES.DASHBOARD}
             element={<Suspense fallback={<PageFallback />}><Dashboard /></Suspense>}
           />
-          <Route path={ROUTES.DASHBOARD}     element={<Suspense fallback={<PageFallback />}><Dashboard /></Suspense>} />
           <Route path={ROUTES.LOBBY}         element={<Suspense fallback={<PageFallback />}><Lobby /></Suspense>} />
           
           <Route path={ROUTES.ANALYTICS}   element={<Suspense fallback={<PageFallback />}><Analytics /></Suspense>} />
@@ -97,7 +96,6 @@ const AppRoutes = () => {
           <Route path={ROUTES.TEAMS}         element={<Suspense fallback={<PageFallback />}><Teams /></Suspense>} />
           <Route path={ROUTES.TEAM}          element={<Suspense fallback={<PageFallback />}><Channels /></Suspense>} />
           <Route path={ROUTES.CHANNELS}      element={<Suspense fallback={<PageFallback />}><Channels /></Suspense>} />
-          <Route path="/channels"            element={<Suspense fallback={<PageFallback />}><Channels /></Suspense>} />
           <Route path={ROUTES.NOTIFICATIONS} element={<Suspense fallback={<PageFallback />}><Notifications /></Suspense>} />
           <Route path={ROUTES.RECORDINGS}    element={<Suspense fallback={<PageFallback />}><Recordings /></Suspense>} />
           <Route path={ROUTES.RECORDING_DETAIL} element={<Suspense fallback={<PageFallback />}><RecordingDetail /></Suspense>} />

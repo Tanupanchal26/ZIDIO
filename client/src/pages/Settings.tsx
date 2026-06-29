@@ -9,10 +9,9 @@ import Card from '../components/common/Card';
 import Button from '../components/common/Button';
 import Badge from '../components/common/Badge';
 import { useAppSelector, useAppDispatch } from '../hooks/useAppDispatch';
-import { clearAuth } from '../store/auth/auth.slice';
 import { setTheme, setDensity } from '../store/ui/ui.slice';
-import { authService } from '../api/auth.api';
 import { ROUTES, STORAGE_KEYS } from '../constants';
+import { useAuth } from '../hooks/useAuth';
 import toast from 'react-hot-toast';
 import { clsx } from 'clsx';
 
@@ -113,7 +112,7 @@ const AvatarUpload = ({ name }: { name: string }) => {
       toast.error('Upload failed — please try again');
     };
     xhr.open('POST', '/api/users/avatar');
-    xhr.setRequestHeader('Authorization', `Bearer ${localStorage.getItem('im_token') ?? ''}`);
+    xhr.setRequestHeader('Authorization', `Bearer ${localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN) ?? ''}`);
     xhr.send(formData);
   };
 
@@ -226,7 +225,7 @@ const Settings = () => {
   }, [urlTab, validTabs, setSearchParams]);
 
   const dispatch = useAppDispatch();
-  const user   = useAppSelector((s) => s.auth.user);
+  const { user, logout } = useAuth();
   const theme = useAppSelector((s) => s.ui.theme);
   const density = useAppSelector((s) => s.ui.density);
   const [tab,  setTab]  = useState<Tab>('profile');
@@ -250,21 +249,7 @@ const Settings = () => {
 
   const save = () => toast.success('Settings saved!');
 
-  const handleLogout = async () => {
-    try {
-      await authService.logout().catch(() => {});
-      dispatch(clearAuth());
-      localStorage.clear();
-      sessionStorage.clear();
-      toast.success('Signed out successfully');
-      navigate("/", { replace: true });
-    } catch (error) {
-      console.error('Logout failed:', error);
-      dispatch(clearAuth());
-      localStorage.clear();
-      navigate("/", { replace: true });
-    }
-  };
+  const handleLogout = logout;
 
   const tabGroups = ['Account', 'Workspace'];
 

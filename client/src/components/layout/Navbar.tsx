@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { Search, Menu, Plus, Video, Command } from 'lucide-react';
+import { Search, Menu, Plus, Video } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAppSelector, useAppDispatch } from '../../hooks/useAppDispatch';
 import { setMobileSidebar } from '../../store/ui/ui.slice';

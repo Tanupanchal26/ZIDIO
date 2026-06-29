@@ -16,7 +16,7 @@ interface UIState {
 
 const initialState: UIState = {
   theme: (localStorage.getItem(STORAGE_KEYS.THEME) as Theme) || 'system',
-  density: (localStorage.getItem('im_density') as Density) || 'comfortable',
+  density: (localStorage.getItem(STORAGE_KEYS.DENSITY) as Density) || 'comfortable',
   sidebarCollapsed: localStorage.getItem(STORAGE_KEYS.SIDEBAR) === 'true',
   mobileSidebarOpen: false,
   activeMeetingPanel: 'chat',
@@ -37,7 +37,7 @@ const uiSlice = createSlice({
     },
     setDensity(state, { payload }: PayloadAction<Density>) {
       state.density = payload;
-      localStorage.setItem('im_density', payload);
+      localStorage.setItem(STORAGE_KEYS.DENSITY, payload);
     },
     toggleSidebar(state) {
       state.sidebarCollapsed = !state.sidebarCollapsed;

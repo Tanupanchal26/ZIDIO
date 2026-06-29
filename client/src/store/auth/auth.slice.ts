@@ -7,38 +7,45 @@ export interface User {
   email: string;
   avatar?: string;
   role?: string;
+  isVerified?: boolean;
+  tenantId?: string;
+  status?: string;
+  lastLogin?: string;
 }
 
 interface AuthState {
   user: User | null;
   accessToken: string | null;
-  refreshToken: string | null;
   isAuthenticated: boolean;
 }
 
-const stored = localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
+const parseStoredUser = (): User | null => {
+  try {
+    return JSON.parse(localStorage.getItem(STORAGE_KEYS.USER) ?? 'null');
+  } catch {
+    return null;
+  }
+};
 
 const initialState: AuthState = {
-  user: (() => { try { return JSON.parse(localStorage.getItem('im_user') || 'null'); } catch { return null; } })(),
-  accessToken: stored,
-  refreshToken: localStorage.getItem('im_refresh_token'),
-  isAuthenticated: !!stored,
+  user: parseStoredUser(),
+  accessToken: localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN),
+  isAuthenticated: !!localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN),
 };
 
 const authSlice = createSlice({
   name: 'auth',
   initialState,
   reducers: {
-    setCredentials(state, { payload }: PayloadAction<{ user: User; accessToken: string; refreshToken?: string }>) {
+    setCredentials(
+      state,
+      { payload }: PayloadAction<{ user: User; accessToken: string }>
+    ) {
       state.user = payload.user;
       state.accessToken = payload.accessToken;
       state.isAuthenticated = true;
-      if (payload.refreshToken) {
-        state.refreshToken = payload.refreshToken;
-        localStorage.setItem('im_refresh_token', payload.refreshToken);
-      }
       localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, payload.accessToken);
-      localStorage.setItem('im_user', JSON.stringify(payload.user));
+      localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(payload.user));
     },
     refreshAccessToken(state, { payload }: PayloadAction<string>) {
       state.accessToken = payload;
@@ -47,11 +54,10 @@ const authSlice = createSlice({
     clearAuth(state) {
       state.user = null;
       state.accessToken = null;
-      state.refreshToken = null;
       state.isAuthenticated = false;
       localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
-      localStorage.removeItem('im_refresh_token');
-      localStorage.removeItem('im_user');
+      localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
+      localStorage.removeItem(STORAGE_KEYS.USER);
     },
   },
 });

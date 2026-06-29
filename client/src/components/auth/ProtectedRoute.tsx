@@ -1,6 +1,6 @@
 import { Navigate, Outlet } from 'react-router-dom';
 import { useAppSelector } from '../../hooks/useAppDispatch';
-import { ROUTES } from '../../constants';
+import { ROLES, ROUTES } from '../../constants';
 
 /** Redirects unauthenticated users to the public home page. */
 export const ProtectedRoute = () => {
@@ -18,10 +18,10 @@ export const PublicRoute = () => {
 export const RoleProtectedRoute = ({ allowedRoles }: { allowedRoles: string[] }) => {
   const { isAuthenticated, user } = useAppSelector((s) => s.auth);
   if (!isAuthenticated) return <Navigate to={ROUTES.LOGIN} replace />;
-  
+
   const effectiveRoles = [...allowedRoles];
-  if (allowedRoles.includes('admin') && !allowedRoles.includes('super_admin')) {
-    effectiveRoles.push('super_admin');
+  if (allowedRoles.includes(ROLES.ADMIN) && !allowedRoles.includes(ROLES.SUPER_ADMIN)) {
+    effectiveRoles.push(ROLES.SUPER_ADMIN);
   }
 
   if (!user?.role || !effectiveRoles.includes(user.role)) {

@@ -1,9 +1,20 @@
 import { useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAppDispatch } from '../hooks/useAppDispatch';
-import { setCredentials } from '../store/auth/auth.slice';
+import { setCredentials, type User } from '../store/auth/auth.slice';
 import toast from 'react-hot-toast';
 import { ROUTES, STORAGE_KEYS } from '../constants';
+
+const OAUTH_COOKIE_NAME = '__oauth_token';
+
+const readCookie = (name: string): string | null => {
+  const match = document.cookie.match(new RegExp(`(^| )${name}=([^;]+)`));
+  return match ? decodeURIComponent(match[2]) : null;
+};
+
+const clearCookie = (name: string): void => {
+  document.cookie = `${name}=; Max-Age=0; path=/`;
+};
 
 const GoogleAuthSuccess = () => {
   const dispatch = useAppDispatch();
@@ -11,37 +22,30 @@ const GoogleAuthSuccess = () => {
   const [params] = useSearchParams();
 
   useEffect(() => {
-    // Read token from short-lived cookie (more secure than URL param)
-    const getCookie = (name: string) => {
-      const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
-      return match ? decodeURIComponent(match[2]) : null;
-    };
+    const accessToken = readCookie(OAUTH_COOKIE_NAME) ?? params.get('token');
+    clearCookie(OAUTH_COOKIE_NAME);
 
-    const token = getCookie('__oauth_token') || params.get('token');
-
-    // Clear the cookie immediately after reading
-    document.cookie = '__oauth_token=; Max-Age=0; path=/';
-
-    if (!token) {
+    if (!accessToken) {
       toast.error('Google sign-in failed.');
       navigate(ROUTES.LOGIN, { replace: true });
       return;
     }
 
-    const user = {
-      id:         params.get('id')         || '',
-      name:       params.get('name')       || '',
-      email:      params.get('email')      || '',
-      avatar:     params.get('avatar')     || '',
-      role:       params.get('role')       || 'member',
+    const user: User = {
+      id:         params.get('id')         ?? '',
+      name:       params.get('name')       ?? '',
+      email:      params.get('email')      ?? '',
+      avatar:     params.get('avatar')     ?? '',
+      role:       params.get('role')       ?? 'member',
       isVerified: params.get('isVerified') === 'true',
     };
 
-    localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, token);
-    localStorage.setItem('im_user', JSON.stringify(user));
-    dispatch(setCredentials({ user, accessToken: token }));
+    localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, accessToken);
+    localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user));
+    dispatch(setCredentials({ user, accessToken }));
     toast.success(`Welcome, ${user.name || 'back'}! 🎉`);
     navigate(ROUTES.DASHBOARD, { replace: true });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (

@@ -2,24 +2,19 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard, Video, Brain, CheckSquare, BarChart2,
-  Settings, LogOut, Users, Bell, Hash, Search, FolderOpen
+  Settings, LogOut, Users, Bell, FolderOpen
 } from 'lucide-react';
 import { useAppSelector, useAppDispatch } from '../../hooks/useAppDispatch';
 import { setMobileSidebar, toggleSidebar } from '../../store/ui/ui.slice';
-import { clearAuth } from '../../store/auth/auth.slice';
-import { ROUTES, STORAGE_KEYS } from '../../constants';
+import { ROUTES, ROLES } from '../../constants';
+import { useAuth } from '../../hooks/useAuth';
 import { clsx } from 'clsx';
-import toast from 'react-hot-toast';
 import Logo from '../common/Logo';
 
 const NAV_PRIMARY = [
   { label: 'Dashboard', icon: LayoutDashboard, to: ROUTES.DASHBOARD },
   { label: 'Meetings',  icon: Video,           to: ROUTES.LOBBY },
   { label: 'Teams',     icon: Users,           to: ROUTES.TEAMS },
-  { label: 'Channels',  icon: Hash,            to: '/channels' },
-];
-
-const SECONDARY_LINKS = [{ label: 'Notifications', icon: Bell,        to: ROUTES.NOTIFICATIONS },
 ];
 
 interface NavItemProps {
@@ -66,11 +61,11 @@ const SectionLabel = ({ children, collapsed }: { children: React.ReactNode; coll
 const Sidebar = () => {
   const mobileSidebarOpen = useAppSelector((s) => s.ui.mobileSidebarOpen);
   const sidebarCollapsed  = useAppSelector((s) => s.ui.sidebarCollapsed);
-  const user              = useAppSelector((s) => s.auth.user);
   const dispatch          = useAppDispatch();
   const navigate          = useNavigate();
-  
-  const isAdmin = user?.role === 'admin' || user?.role === 'super_admin';
+  const { user, logout }  = useAuth();
+
+  const isAdmin = user?.role === ROLES.ADMIN || user?.role === ROLES.SUPER_ADMIN;
   const NAV_TOOLS = [
     { label: 'Tasks',         icon: CheckSquare, to: ROUTES.TASKS },
     { label: 'Analytics',     icon: BarChart2,   to: ROUTES.ANALYTICS },
@@ -79,14 +74,9 @@ const Sidebar = () => {
     { label: 'Media Library', icon: FolderOpen,  to: ROUTES.MEDIA },
   ];
 
-  const handleLogout = () => {
-    dispatch(clearAuth());
-    localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
-    localStorage.removeItem('im_user');
-    sessionStorage.clear();
+  const handleLogout = async () => {
     dispatch(setMobileSidebar(false));
-    toast.success('Signed out successfully');
-    navigate(ROUTES.HOME, { replace: true });
+    await logout();
   };
 
   const initial = user?.name?.charAt(0).toUpperCase() ?? 'U';

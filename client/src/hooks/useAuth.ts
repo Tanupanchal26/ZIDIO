@@ -11,14 +11,14 @@ export const useAuth = () => {
   const { user, accessToken: token, isAuthenticated } = useAppSelector((s) => s.auth);
   const navigate = useNavigate();
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string, redirectTo = ROUTES.DASHBOARD) => {
     const res = (await authService.login({ email, password })) as any;
-    const userData = res.data?.user || res.user;
+    const userData    = res.data?.user    || res.user;
     const accessToken = res.data?.accessToken || res.accessToken || res.token;
     if (!userData) throw new Error('User data not received');
     dispatch(setCredentials({ user: userData, accessToken }));
     toast.success(`Welcome back, ${userData.name}!`);
-    navigate(ROUTES.DASHBOARD);
+    navigate(redirectTo);
   };
 
   const register = async (name: string, email: string, password: string) => {

@@ -62,5 +62,5 @@ export const useMeetingStore = create<MeetingState>((set) => ({
   toggleScreenShare: () => set((s) => ({ isScreenSharing: !s.isScreenSharing })),
   toggleRecording: () => set((s) => ({ isRecording: !s.isRecording })),
   setInCall: (v) => set({ isInCall: v }),
-  resetMeeting: () => set({ currentMeeting: null, participants: [], isMuted: false, isVideoOff: false, isScreenSharing: false, isRecording: false, isInCall: false }),
+  resetMeeting: () => set({ currentMeeting: null, participants: [], isMuted: false, isVideoOff: true, isScreenSharing: false, isRecording: false, isInCall: false }),
 }));

@@ -62,7 +62,7 @@ axiosClient.interceptors.response.use(
       } catch (refreshErr) {
         processQueue(refreshErr, null);
         localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
-        localStorage.removeItem('im_user');
+        localStorage.removeItem(STORAGE_KEYS.USER);
         window.dispatchEvent(new CustomEvent('auth:logout'));
         return Promise.reject(refreshErr);
       } finally {

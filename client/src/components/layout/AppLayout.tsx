@@ -6,18 +6,20 @@ import TopBar from './Navbar';
 import { useAppSelector, useAppDispatch } from '../../hooks/useAppDispatch';
 import { setMobileSidebar } from '../../store/ui/ui.slice';
 import { motion as m } from '../../design-system/motion';
+import { ROUTES } from '../../constants';
 
 const PAGE_TITLES: Record<string, string> = {
-  '/dashboard':     'Dashboard',
-  '/lobby':         'Meetings',
-  '/analytics':     'Analytics',
-  '/tasks':         'Task Board',
-  '/settings':      'Settings',
-  '/profile':       'Profile',
-  '/ai-summary':    'AI Summary',
-  '/teams':         'Teams',
-  '/notifications': 'Notifications',
-  '/channels':      'Channels',
+  [ROUTES.DASHBOARD]:     'Dashboard',
+  [ROUTES.LOBBY]:         'Meetings',
+  [ROUTES.ANALYTICS]:     'Analytics',
+  [ROUTES.TASKS]:         'Task Board',
+  [ROUTES.SETTINGS]:      'Settings',
+  [ROUTES.PROFILE]:       'Profile',
+  [ROUTES.AI_SUMMARY]:    'AI Summary',
+  [ROUTES.TEAMS]:         'Teams',
+  [ROUTES.NOTIFICATIONS]: 'Notifications',
+  [ROUTES.RECORDINGS]:    'Recordings',
+  [ROUTES.MEDIA]:         'Media Library',
 };
 
 const AppLayout = () => {

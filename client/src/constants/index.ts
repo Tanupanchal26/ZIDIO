@@ -39,6 +39,7 @@ export const SOCKET_URL    = ((import.meta as any).env?.VITE_SOCKET_URL   as str
 
 // ── Roles ─────────────────────────────────────────────────────────────────────
 export const ROLES = {
+  SUPER_ADMIN: 'super_admin',
   ADMIN:  'admin',
   MEMBER: 'member',
 } as const;
@@ -48,8 +49,12 @@ export type Role = typeof ROLES[keyof typeof ROLES];
 // ── Storage keys ──────────────────────────────────────────────────────────────
 export const STORAGE_KEYS = {
   ACCESS_TOKEN:  'im_access_token',
+  REFRESH_TOKEN: 'im_refresh_token',
+  USER:          'im_user',
   THEME:         'im_theme',
   SIDEBAR:       'im_sidebar',
+  DENSITY:       'im_density',
+  DEV_MINIMIZED: 'im_dev_minimized',
 } as const;
 
 // ── Pagination ────────────────────────────────────────────────────────────────

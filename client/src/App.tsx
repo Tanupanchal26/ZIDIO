@@ -7,6 +7,7 @@ import { clearAuth, refreshAccessToken, setCredentials } from './store/auth/auth
 import AppRoutes from './app/router';
 import ErrorBoundary from './components/common/ErrorBoundary';
 import { initSentry } from './utils/sentry';
+import { STORAGE_KEYS } from './constants';
 import './styles/global.css';
 
 // Initialize Sentry as early as possible
@@ -14,32 +15,68 @@ initSentry();
 
 const qc = new QueryClient({ defaultOptions: { queries: { retry: 1, staleTime: 30000 } } });
 
+const DEV_PORTAL_STYLES = {
+  fab: {
+    position: 'fixed' as const,
+    bottom: '16px',
+    left: '16px',
+    zIndex: 99999,
+    width: '44px',
+    height: '44px',
+    borderRadius: '50%',
+    backgroundColor: '#0F0F1A',
+    border: '1px solid rgba(255,255,255,0.15)',
+    boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+    color: '#fff',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    cursor: 'pointer',
+    fontSize: '18px',
+    transition: 'all 0.2s',
+  },
+  panel: {
+    position: 'fixed' as const,
+    bottom: '16px',
+    left: '16px',
+    zIndex: 99999,
+    backgroundColor: '#0F0F1A',
+    border: '1px solid rgba(255,255,255,0.15)',
+    borderRadius: '16px',
+    padding: '14px',
+    boxShadow: '0 12px 40px rgba(0,0,0,0.6)',
+    color: '#fff',
+    fontFamily: "'Inter', system-ui, sans-serif",
+    fontSize: '11px',
+    width: '280px',
+  },
+  link: { color: '#818CF8', textDecoration: 'none', fontWeight: '500', padding: '2px 0' } as const,
+} as const;
+
+const MOCK_DEV_USER = {
+  id: 'dev-user-id',
+  name: 'Developer Mode',
+  email: 'dev@intellmeet.com',
+  role: 'admin',
+} as const;
+
 const DevNavigator = () => {
   const dispatch = useAppDispatch();
   const auth = useAppSelector((s) => s.auth);
-  const [minimized, setMinimized] = useState(() => {
-    return localStorage.getItem('im_dev_minimized') === 'true';
-  });
+  const [minimized, setMinimized] = useState(() =>
+    localStorage.getItem(STORAGE_KEYS.DEV_MINIMIZED) === 'true'
+  );
 
   const toggleMinimize = () => {
     setMinimized(m => {
       const next = !m;
-      localStorage.setItem('im_dev_minimized', String(next));
+      localStorage.setItem(STORAGE_KEYS.DEV_MINIMIZED, String(next));
       return next;
     });
   };
 
   const handleMockLogin = () => {
-    dispatch(setCredentials({
-      user: {
-        id: 'dev-user-id',
-        name: 'Developer Mode',
-        email: 'dev@intellmeet.com',
-        role: 'admin',
-      },
-      accessToken: 'mock-access-token',
-      refreshToken: 'mock-refresh-token'
-    }));
+    dispatch(setCredentials({ user: MOCK_DEV_USER, accessToken: 'mock-access-token' }));
     toast.success('Signed in as Developer!');
   };
 
@@ -53,25 +90,7 @@ const DevNavigator = () => {
       <button
         onClick={toggleMinimize}
         title="Open Developer Portal"
-        style={{
-          position: 'fixed',
-          bottom: '16px',
-          left: '16px',
-          zIndex: 99999,
-          width: '44px',
-          height: '44px',
-          borderRadius: '50%',
-          backgroundColor: '#0F0F1A',
-          border: '1px solid rgba(255,255,255,0.15)',
-          boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
-          color: '#fff',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          cursor: 'pointer',
-          fontSize: '18px',
-          transition: 'all 0.2s',
-        }}
+        style={DEV_PORTAL_STYLES.fab}
         onMouseEnter={(e) => {
           e.currentTarget.style.transform = 'scale(1.08)';
           e.currentTarget.style.borderColor = 'rgba(255,255,255,0.3)';
@@ -87,21 +106,7 @@ const DevNavigator = () => {
   }
 
   return (
-    <div style={{
-      position: 'fixed',
-      bottom: '16px',
-      left: '16px',
-      zIndex: 99999,
-      backgroundColor: '#0F0F1A',
-      border: '1px solid rgba(255,255,255,0.15)',
-      borderRadius: '16px',
-      padding: '14px',
-      boxShadow: '0 12px 40px rgba(0,0,0,0.6)',
-      color: '#fff',
-      fontFamily: "'Inter', system-ui, sans-serif",
-      fontSize: '11px',
-      width: '280px',
-    }}>
+    <div style={DEV_PORTAL_STYLES.panel}>
       {/* Title & Collapsible trigger */}
       <div style={{
         display: 'flex',
@@ -203,20 +208,18 @@ const DevNavigator = () => {
         PAGES JUMP
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '6px' }}>
-        <Link to="/login" style={{ color: '#818CF8', textDecoration: 'none', fontWeight: '500', padding: '2px 0' }}>🔓 Login</Link>
-        <Link to="/signup" style={{ color: '#818CF8', textDecoration: 'none', fontWeight: '500', padding: '2px 0' }}>📝 Signup</Link>
-        <Link to="/dashboard" style={{ color: '#818CF8', textDecoration: 'none', fontWeight: '500', padding: '2px 0' }}>📊 Dashboard</Link>
-        <Link to="/lobby" style={{ color: '#818CF8', textDecoration: 'none', fontWeight: '500', padding: '2px 0' }}>🎥 Lobby</Link>
-        <Link to="/teams" style={{ color: '#818CF8', textDecoration: 'none', fontWeight: '500', padding: '2px 0' }}>👥 Teams</Link>
-        <Link to="/channels" style={{ color: '#818CF8', textDecoration: 'none', fontWeight: '500', padding: '2px 0' }}>💬 Channels</Link>
-        <Link to="/meeting/dev-call" style={{ color: '#818CF8', textDecoration: 'none', fontWeight: '500', padding: '2px 0' }}>📞 Meeting Room</Link>
-        <Link to="/analytics" style={{ color: '#818CF8', textDecoration: 'none', fontWeight: '500', padding: '2px 0' }}>📈 Analytics</Link>
-        <Link to="/tasks" style={{ color: '#818CF8', textDecoration: 'none', fontWeight: '500', padding: '2px 0' }}>📋 Tasks</Link>
-        <Link to="/settings" style={{ color: '#818CF8', textDecoration: 'none', fontWeight: '500', padding: '2px 0' }}>⚙️ Settings</Link>
-        <Link to="/notifications" style={{ color: '#818CF8', textDecoration: 'none', fontWeight: '500', padding: '2px 0' }}>🔔 Notifications</Link>
-        <Link to="/ai-summary" style={{ color: '#818CF8', textDecoration: 'none', fontWeight: '500', padding: '2px 0' }}>🧠 AI Summary</Link>
-        <Link to="/forgot-password" style={{ color: '#818CF8', textDecoration: 'none', fontWeight: '500', padding: '2px 0' }}>🔑 Forgot Pw</Link>
-        <Link to="/reset-password" style={{ color: '#818CF8', textDecoration: 'none', fontWeight: '500', padding: '2px 0' }}>🔄 Reset Pw</Link>
+        <Link to="/login"            style={DEV_PORTAL_STYLES.link}>🔓 Login</Link>
+        <Link to="/signup"           style={DEV_PORTAL_STYLES.link}>📝 Signup</Link>
+        <Link to="/dashboard"        style={DEV_PORTAL_STYLES.link}>📊 Dashboard</Link>
+        <Link to="/lobby"            style={DEV_PORTAL_STYLES.link}>🎥 Lobby</Link>
+        <Link to="/teams"            style={DEV_PORTAL_STYLES.link}>👥 Teams</Link>
+        <Link to="/meeting/dev-call" style={DEV_PORTAL_STYLES.link}>📞 Meeting Room</Link>
+        <Link to="/analytics"        style={DEV_PORTAL_STYLES.link}>📈 Analytics</Link>
+        <Link to="/tasks"            style={DEV_PORTAL_STYLES.link}>📋 Tasks</Link>
+        <Link to="/settings"         style={DEV_PORTAL_STYLES.link}>⚙️ Settings</Link>
+        <Link to="/notifications"    style={DEV_PORTAL_STYLES.link}>🔔 Notifications</Link>
+        <Link to="/ai-summary"       style={DEV_PORTAL_STYLES.link}>🧠 AI Summary</Link>
+        <Link to="/forgot-password"  style={DEV_PORTAL_STYLES.link}>🔑 Forgot Pw</Link>
       </div>
     </div>
   );
