@@ -1,51 +1,52 @@
-// @ts-nocheck
-const mongoose = require('mongoose');
-const { mongo, isProd } = require('./env');
-const logger = require('../utils/logger');
+import mongoose, { type ConnectOptions } from 'mongoose';
+import config from './env';
+import logger from '../shared/utils/logger';
 
-const MONGO_OPTIONS = {
-  serverSelectionTimeoutMS: 5000,
-  heartbeatFrequencyMS:     10000,
-  maxPoolSize:              isProd ? 20 : 5,
+const MONGO_OPTIONS: ConnectOptions = {
+  serverSelectionTimeoutMS: 5_000,
+  heartbeatFrequencyMS:     10_000,
+  maxPoolSize:              config.isProd ? 20 : 5,
   minPoolSize:              2,
-  socketTimeoutMS:          45000,
-  family:                   4,      // use IPv4, skip IPv6
+  socketTimeoutMS:          45_000,
+  family:                   4,
 };
 
-// Retry wrapper — tries up to `retries` times with exponential backoff
-const connectWithRetry = async (retries = 5, delay = 3000) => {
+const connectWithRetry = async (retries = 5, baseDelayMs = 3_000): Promise<void> => {
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
-      await mongoose.connect(mongo.uri, MONGO_OPTIONS);
-      return; // success
+      await mongoose.connect(config.mongo.uri, MONGO_OPTIONS);
+      return;
     } catch (err) {
-      logger.error(`[DB] Connection attempt ${attempt}/${retries} failed: ${err.message}`);
+      const message = err instanceof Error ? err.message : String(err);
+      logger.error(`[DB] Connection attempt ${attempt}/${retries} failed: ${message}`);
       if (attempt === retries) throw err;
-      await new Promise(r => setTimeout(r, delay * attempt)); // exponential backoff
+      await new Promise((r) => setTimeout(r, baseDelayMs * attempt));
     }
   }
 };
 
-const connectDB = async () => {
+export const connectDB = async (): Promise<void> => {
   mongoose.connection.on('connected',    () => logger.info('[DB] MongoDB connected'));
   mongoose.connection.on('disconnected', () => logger.warn('[DB] MongoDB disconnected'));
-  mongoose.connection.on('error',        (e) => logger.error(`[DB] Error: ${e.message}`));
+  mongoose.connection.on('error',        (e: Error) => logger.error(`[DB] Error: ${e.message}`));
+
+  if (!config.isProd) {
+    mongoose.set('debug', (collection: string, method: string) => {
+      logger.debug(`[DB] ${collection}.${method}`);
+    });
+  }
 
   try {
     await connectWithRetry();
     logger.info(`[DB] Connected to: ${mongoose.connection.host}`);
   } catch (err) {
-    logger.error(`[DB] Failed to connect after retries — exiting. ${err.message}`);
+    const message = err instanceof Error ? err.message : String(err);
+    logger.error(`[DB] Failed to connect after retries — exiting. ${message}`);
     process.exit(1);
   }
 };
 
-// Graceful disconnect — called on SIGTERM/SIGINT
-const disconnectDB = async () => {
+export const disconnectDB = async (): Promise<void> => {
   await mongoose.connection.close();
   logger.info('[DB] MongoDB connection closed');
 };
-
-module.exports = { connectDB, disconnectDB };
-
-export {};

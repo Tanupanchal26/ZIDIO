@@ -3,23 +3,26 @@ import helmet from 'helmet';
 import cors, { CorsOptions } from 'cors';
 import compression from 'compression';
 import mongoSanitize from 'express-mongo-sanitize';
-import xss from 'xss-clean';
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const xss = require('xss-clean');
 import hpp from 'hpp';
 import cookieParser from 'cookie-parser';
 import session from 'express-session';
 import { RedisStore } from 'connect-redis';
 import { Request, Response, NextFunction } from 'express';
+import mongoose from 'mongoose';
+import client from 'prom-client';
 import { getRedisClient } from './config/redis';
 
 import config from './config/env';
-import requestId from './middleware/requestId.middleware';
+const requestId = require('./middleware/requestId.middleware');
 import httpLogger from './middleware/httpLogger.middleware';
 import { apiLimiter } from './middleware/rateLimit.middleware';
-import notFound from './middleware/notFound.middleware';
+const notFound = require('./middleware/notFound.middleware');
 import errorMiddleware from './middleware/error.middleware';
 import passport from './config/passport';
 import v1Router from './routes/v1/index';
-import { initSentry, sentryRequestHandler, sentryErrorHandler } from './config/sentry';
+const { initSentry, sentryRequestHandler, sentryErrorHandler } = require('./config/sentry');
 
 const app = express();
 
@@ -87,14 +90,25 @@ app.use(hpp());
 
 app.use('/api', apiLimiter);
 
-app.get('/health', (_req: Request, res: Response) =>
-  res.json({
-    status:    'ok',
+client.collectDefaultMetrics();
+
+app.get('/health', async (_req: Request, res: Response) => {
+  const mongo = mongoose.connection.readyState === 1;
+  const redis = getRedisClient()?.isReady ?? false;
+  const status = mongo && redis ? 'ok' : 'degraded';
+  res.status(status === 'ok' ? 200 : 503).json({
+    status,
     timestamp: new Date().toISOString(),
     uptime:    process.uptime(),
     requestId: res.locals.requestId,
-  })
-);
+    dependencies: { mongo, redis },
+  });
+});
+
+app.get('/metrics', async (_req: Request, res: Response) => {
+  res.set('Content-Type', client.register.contentType);
+  res.end(await client.register.metrics());
+});
 
 app.use('/api/v1', v1Router);
 app.use('/api', (req: Request, res: Response, next: NextFunction) => {

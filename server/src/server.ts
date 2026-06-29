@@ -52,13 +52,13 @@ const start = async () => {
       logger.info(`[SERVER] IntellMeet API running on port ${config.port} [${config.env}]`);
     });
   } catch (err) {
-    logger.error(`[SERVER] Startup failed: ${err.message}`);
+    logger.error(`[SERVER] Startup failed: ${(err as Error).message}`);
     process.exit(1);
   }
 };
 
 // ── Graceful shutdown ─────────────────────────────────────────────────────────
-const shutdown = async (signal) => {
+const shutdown = async (signal: string) => {
   logger.info(`[SERVER] ${signal} received — shutting down gracefully`);
 
   server.close(async () => {
@@ -69,7 +69,7 @@ const shutdown = async (signal) => {
       logger.info('[SERVER] Clean shutdown complete');
       process.exit(0);
     } catch (err) {
-      logger.error(`[SERVER] Error during shutdown: ${err.message}`);
+      logger.error(`[SERVER] Error during shutdown: ${(err as Error).message}`);
       process.exit(1);
     }
   });

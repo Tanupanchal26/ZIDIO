@@ -6,12 +6,15 @@ export interface AuthUser {
   email: string;
   role: string;
   status: string;
-  tenantId: Types.ObjectId | null;
+  tenantId?: Types.ObjectId | null;
   isVerified: boolean;
+  passwordChangedAt?: Date;
+  [key: string]: unknown;
 }
 
 declare global {
   namespace Express {
+    interface User extends AuthUser {}
     interface Request {
       user?: AuthUser;
       tenantId?: Types.ObjectId;

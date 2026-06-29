@@ -19,13 +19,13 @@ class BaseRepository {
   }
 
   // ── Scope all queries to a tenant ──────────────────────────────────────────
-  _scope(tenantId, extra = {}) {
+  #scope(tenantId, extra = {}) {
     return tenantId ? { tenantId, ...extra } : extra;
   }
 
   async findAll(tenantId, filter = {}, options = {}) {
     const { page, limit, sort = { createdAt: -1 }, populate } = options;
-    const query = this.Model.find(this._scope(tenantId, filter)).sort(sort);
+    const query = this.Model.find(this.#scope(tenantId, filter)).sort(sort);
     if (populate) query.populate(populate);
 
     if (page || limit) {
@@ -38,7 +38,7 @@ class BaseRepository {
   }
 
   async findById(id, tenantId, populate) {
-    const query = this.Model.findOne(this._scope(tenantId, { _id: id }));
+    const query = this.Model.findOne(this.#scope(tenantId, { _id: id }));
     if (populate) query.populate(populate);
     const doc = await query;
     if (!doc) throw ApiError.notFound(`${this.Model.modelName} not found`);
@@ -46,7 +46,7 @@ class BaseRepository {
   }
 
   async findOne(filter, tenantId) {
-    return this.Model.findOne(this._scope(tenantId, filter));
+    return this.Model.findOne(this.#scope(tenantId, filter));
   }
 
   async create(data) {
@@ -55,7 +55,7 @@ class BaseRepository {
 
   async updateById(id, tenantId, update) {
     const doc = await this.Model.findOneAndUpdate(
-      this._scope(tenantId, { _id: id }),
+      this.#scope(tenantId, { _id: id }),
       update,
       { new: true, runValidators: true }
     );
@@ -64,13 +64,13 @@ class BaseRepository {
   }
 
   async deleteById(id, tenantId) {
-    const doc = await this.Model.findOneAndDelete(this._scope(tenantId, { _id: id }));
+    const doc = await this.Model.findOneAndDelete(this.#scope(tenantId, { _id: id }));
     if (!doc) throw ApiError.notFound(`${this.Model.modelName} not found`);
     return doc;
   }
 
   async count(tenantId, filter = {}) {
-    return this.Model.countDocuments(this._scope(tenantId, filter));
+    return this.Model.countDocuments(this.#scope(tenantId, filter));
   }
 }
 
