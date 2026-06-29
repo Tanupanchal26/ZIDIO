@@ -53,6 +53,8 @@ const DEV_PORTAL_STYLES = {
   link: { color: '#818CF8', textDecoration: 'none', fontWeight: '500', padding: '2px 0' } as const,
 } as const;
 
+const IS_DEV = import.meta.env.DEV;
+
 const MOCK_DEV_USER = {
   id: 'dev-user-id',
   name: 'Developer Mode',
@@ -289,7 +291,7 @@ const App = () => {
           <div role="status" aria-live="polite" aria-atomic="true" className="sr-only" id="a11y-announcer" />
           <AuthSync />
           <AppRoutes />
-          <DevNavigator />
+          {IS_DEV && <DevNavigator />}
         </ErrorBoundary>
         <Toaster
           position="top-right"

@@ -1,6 +1,7 @@
 // @ts-nocheck
 const { getRedisClient } = require('../config/redis');
 const ApiError = require('../utils/ApiError');
+const logger   = require('../shared/utils/logger').default;
 
 /**
  * Limits Socket.IO connections per IP to 30 per minute.
@@ -24,8 +25,8 @@ module.exports = async (socket, next) => {
     }
     next();
   } catch (err) {
-    // Fail open on error
-    console.error('Socket rate limiter error', err);
+    // Fail open on error — but log with proper logger
+    logger.error('Socket rate limiter error', err);
     next();
   }
 };

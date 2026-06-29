@@ -7,7 +7,7 @@ const chatSocket         = require('./chat.socket');
 const meetingSocket      = require('./meeting.socket');
 const notificationSocket = require('./notification.socket');
 const presenceSocket     = require('./presence.socket');
-const logger = require('../utils/logger');
+const logger = require('../shared/utils/logger').default;
 
 const initSockets = (io) => {
   // ── Auth middleware ────────────────────────────────────────────────────────

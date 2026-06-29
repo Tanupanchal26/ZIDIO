@@ -141,7 +141,7 @@ router.use('/tenants', protect);
 router.get('/tenants',             authorize('super_admin'), async (req, res, next) => {
   try { res.json(await Tenant.find().select('-__v')); } catch (e) { next(e); }
 });
-router.get('/tenants/me',          async (req, res, next) => {
+router.get('/tenants/me',          authenticate, async (req, res, next) => {
   try {
     const t = await Tenant.findById((req as any).tenantId);
     if (!t) return res.status(404).json({ message: 'Tenant not found' });

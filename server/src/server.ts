@@ -14,10 +14,12 @@ const logger = require('./shared/utils/logger').default;
 
 const server = http.createServer(app);
 
-// Socket.io — CORS mirrors app CORS config
+// ── Socket.io — CORS mirrors app CORS config
 const io = new Server(server, {
   cors: {
-    origin:      true,
+    origin: config.isDev
+      ? true
+      : config.cors.allowedOrigins,
     credentials: true,
   },
   pingTimeout:  60000,

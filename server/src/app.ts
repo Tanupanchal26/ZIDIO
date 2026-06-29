@@ -105,7 +105,17 @@ app.get('/health', async (_req: Request, res: Response) => {
   });
 });
 
-app.get('/metrics', async (_req: Request, res: Response) => {
+// /metrics — restricted to internal/admin access only
+app.get('/metrics', (req: Request, res: Response, next: NextFunction) => {
+  const allowedIPs = ['127.0.0.1', '::1', '::ffff:127.0.0.1'];
+  const clientIp   = (req.ip ?? '').replace('::ffff:', '');
+  const adminKey   = req.headers['x-metrics-key'];
+  const validKey   = process.env.METRICS_SECRET_KEY;
+  if (!allowedIPs.includes(clientIp) && (!validKey || adminKey !== validKey)) {
+    return res.status(403).json({ success: false, message: 'Forbidden' });
+  }
+  next();
+}, async (_req: Request, res: Response) => {
   res.set('Content-Type', client.register.contentType);
   res.end(await client.register.metrics());
 });
