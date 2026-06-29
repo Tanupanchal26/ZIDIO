@@ -17,8 +17,13 @@ exports.extractActionItems = async (transcript) => {
     max_tokens: 600,
     temperature: 0.2,
   });
-  const parsed = JSON.parse(res.choices[0].message.content);
-  return parsed.actionItems || [];
+  const raw = res.choices[0].message.content;
+  try {
+    const parsed = JSON.parse(raw);
+    return parsed.actionItems || [];
+  } catch {
+    throw new Error(`AI returned invalid JSON for action items: ${raw?.slice(0, 100)}`);
+  }
 };
 
 export {};

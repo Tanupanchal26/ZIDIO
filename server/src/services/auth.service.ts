@@ -1,61 +1,80 @@
-// @ts-nocheck
-const mongoose    = require('mongoose');
-const userRepo    = require('../repositories/user.repository');
-const teamRepo    = require('../repositories/team.repository');
+import mongoose, { Document } from 'mongoose';
+const userRepo = require('../repositories/user.repository');
+const teamRepo = require('../repositories/team.repository');
 const channelRepo = require('../repositories/channel.repository');
-const Tenant      = require('../models/Tenant');
-const jwtService  = require('./jwt.service');
+const Tenant = require('../models/Tenant');
+import * as jwtService from './jwt.service';
 const emailService = require('./email.service');
-const ApiError    = require('../utils/ApiError');
-const logger      = require('../shared/utils/logger').default;
-const { USER_STATUS, AUTH } = require('../constants');
+import ApiError from '../utils/ApiError';
+import logger from '../shared/utils/logger';
+import { USER_STATUS, AUTH, PLANS } from '../constants';
 
-// Generic "invalid credentials" message — never reveal whether email exists
-const CRED_ERROR = 'Invalid email or password';
+const INVALID_CREDENTIALS_MSG = 'Invalid email or password';
 
-// ── 1. Signup ─────────────────────────────────────────────────────────────────
-const signup = async ({ name, email, password, role }) => {
+const toSlug = (str: string): string =>
+  str.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+
+export interface SignupPayload {
+  name:     string;
+  email:    string;
+  password: string;
+  role?:    string;
+}
+
+export interface AuthResult {
+  user:         unknown;
+  accessToken:  string;
+  refreshToken: string;
+}
+
+export const signup = async ({ name, email, password, role }: SignupPayload): Promise<AuthResult> => {
   const exists = await userRepo.findByEmail(email);
   if (exists) throw ApiError.conflict('An account with this email already exists');
 
-  const slugify = (str) =>
-    str.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-
   const session = await mongoose.startSession();
   session.startTransaction();
+
   try {
-    const tenant = await Tenant.create([{
-      name:   `${name}'s Workspace`,
-      slug:   `${slugify(name)}-${Date.now()}`,
-      plan:   'free',
-    }], { session });
+    const [tenant] = await Tenant.create(
+      [{ name: `${name}'s Workspace`, slug: `${toSlug(name)}-${Date.now()}`, plan: PLANS.FREE }],
+      { session }
+    );
 
-    const user = await userRepo.create({ name, email, password, role, tenantId: tenant[0]._id }, { session });
+    const user = await userRepo.create(
+      { name, email, password, role, tenantId: tenant._id },
+      { session }
+    );
 
-    const team = await teamRepo.create([{
-      tenantId: tenant[0]._id,
-      name:      'General',
-      slug:      'general',
-      createdBy: user._id,
-      members:   [{ user: user._id, role: 'owner' }],
-    }], { session });
+    const [team] = await teamRepo.create(
+      [{
+        tenantId:  tenant._id,
+        name:      'General',
+        slug:      'general',
+        createdBy: user._id,
+        members:   [{ user: user._id, role: 'owner' }],
+      }],
+      { session }
+    );
 
-    await channelRepo.create([{
-      tenantId: tenant[0]._id,
-      team:      team[0]._id,
-      name:      'general',
-      slug:      'general',
-      type:      'public',
-      isDefault: true,
-      createdBy: user._id,
-      members:   [user._id],
-    }], { session });
+    await channelRepo.create(
+      [{
+        tenantId:  tenant._id,
+        team:      team._id,
+        name:      'general',
+        slug:      'general',
+        type:      'public',
+        isDefault: true,
+        createdBy: user._id,
+        members:   [user._id],
+      }],
+      { session }
+    );
 
     const rawToken = user.createToken('emailVerify');
     await user.save({ validateBeforeSave: false, session });
-
     await session.commitTransaction();
-    emailService.sendVerificationEmail(user, rawToken).catch(() => {});
+
+    emailService.sendVerificationEmail(user, rawToken).catch(() => undefined);
 
     const { accessToken, refreshToken } = await jwtService.generateTokenPair(user);
     const hashedRefresh = jwtService.hashToken(refreshToken);
@@ -70,46 +89,44 @@ const signup = async ({ name, email, password, role }) => {
   }
 };
 
-// ── 2. Login ──────────────────────────────────────────────────────────────────
-const login = async ({ email, password }) => {
-  // +password +loginAttempts +lockUntil
+export const login = async ({
+  email,
+  password,
+}: {
+  email: string;
+  password: string;
+}): Promise<AuthResult> => {
   const user = await userRepo.findByEmailForAuth(email);
 
-  // Constant-time response — don't reveal "email not found"
   if (!user) {
-    logger.warn(`Login failed: Invalid email (${email})`);
-    throw ApiError.unauthorized(CRED_ERROR);
+    logger.warn(`Login failed: invalid email (${email})`);
+    throw ApiError.unauthorized(INVALID_CREDENTIALS_MSG);
   }
 
-  // Account status checks
   if (user.status === USER_STATUS.BANNED)
     throw ApiError.forbidden('Your account has been suspended. Contact support.');
-
   if (user.status === USER_STATUS.INACTIVE)
     throw ApiError.forbidden('Your account is inactive.');
 
-  // Lockout check
   if (user.isLocked) {
-    const minutesLeft = Math.ceil((user.lockUntil - Date.now()) / 60000);
-    logger.warn(`Login failed: Account locked (${email})`);
+    const minutesLeft = Math.ceil((user.lockUntil - Date.now()) / 60_000);
+    logger.warn(`Login failed: account locked (${email})`);
     throw ApiError.forbidden(
       `Account temporarily locked. Try again in ${minutesLeft} minute(s).`
     );
   }
 
   const isMatch = await user.comparePassword(password);
-
   if (!isMatch) {
-    logger.warn(`Login failed: Invalid password (${email})`);
+    logger.warn(`Login failed: invalid password (${email})`);
     await user.incLoginAttempts();
     const remaining = AUTH.MAX_LOGIN_ATTEMPTS - (user.loginAttempts + 1);
     const msg = remaining > 0
-      ? `${CRED_ERROR}. ${remaining} attempt(s) remaining.`
+      ? `${INVALID_CREDENTIALS_MSG}. ${remaining} attempt(s) remaining.`
       : `Account locked for ${AUTH.LOCK_DURATION_MINUTES} minutes due to too many failed attempts.`;
     throw ApiError.unauthorized(msg);
   }
 
-  // Successful login — reset counter
   await user.resetLoginAttempts();
 
   const { accessToken, refreshToken } = await jwtService.generateTokenPair(user);
@@ -119,25 +136,21 @@ const login = async ({ email, password }) => {
   return { user, accessToken, refreshToken };
 };
 
-// ── 3. Logout ─────────────────────────────────────────────────────────────────
-const logout = async (userId, rawRefreshToken) => {
+export const logout = async (userId: string, rawRefreshToken?: string): Promise<void> => {
   if (rawRefreshToken) {
     const hashed = jwtService.hashToken(rawRefreshToken);
     await userRepo.removeRefreshToken(userId, hashed);
   }
 };
 
-// ── 4. Logout all sessions ────────────────────────────────────────────────────
-const logoutAll = async (userId) => {
+export const logoutAll = async (userId: string): Promise<void> => {
   await userRepo.clearAllRefreshTokens(userId);
 };
 
-// ── 5. Refresh Token (with rotation) ─────────────────────────────────────────
-const refreshTokens = async (rawRefreshToken) => {
+export const refreshTokens = async (rawRefreshToken: string): Promise<AuthResult> => {
   if (!rawRefreshToken) throw ApiError.unauthorized('Refresh token required');
 
-  // Verify signature first (throws if expired/invalid)
-  let decoded;
+  let decoded: { id: string };
   try {
     decoded = await jwtService.verifyRefreshToken(rawRefreshToken);
   } catch {
@@ -145,52 +158,41 @@ const refreshTokens = async (rawRefreshToken) => {
   }
 
   const hashedIncoming = jwtService.hashToken(rawRefreshToken);
-  const user = await userRepo.findByRefreshToken(hashedIncoming);
+  const user           = await userRepo.findByRefreshToken(hashedIncoming);
 
   if (!user) {
-    // Token reuse detected — possible refresh token theft
-    // Nuclear option: revoke ALL sessions for this user
     await userRepo.clearAllRefreshTokens(decoded.id);
     throw ApiError.unauthorized('Token reuse detected — all sessions revoked');
   }
 
-  // Rotation: remove old token, issue new pair
   await userRepo.removeRefreshToken(user._id, hashedIncoming);
   const { accessToken, refreshToken: newRefresh } = await jwtService.generateTokenPair(user);
-  const hashedNew = jwtService.hashToken(newRefresh);
-  await userRepo.addRefreshToken(user._id, hashedNew);
+  await userRepo.addRefreshToken(user._id, jwtService.hashToken(newRefresh));
 
   return { user, accessToken, refreshToken: newRefresh };
 };
 
-// ── 6. Forgot Password ────────────────────────────────────────────────────────
-const forgotPassword = async (email) => {
+export const forgotPassword = async (email: string): Promise<void> => {
   const user = await userRepo.findByEmail(email);
-  // Always respond with success — never reveal whether email exists
-  if (!user) return;
+  if (!user) return; // never reveal whether email exists
 
   const rawToken = user.createToken('passwordReset');
   await user.save({ validateBeforeSave: false });
-
-  await emailService.sendPasswordResetEmail(user, rawToken).catch(() => {});
+  await emailService.sendPasswordResetEmail(user, rawToken).catch(() => undefined);
 };
 
-// ── 7. Reset Password ─────────────────────────────────────────────────────────
-const resetPassword = async (rawToken, newPassword) => {
+export const resetPassword = async (rawToken: string, newPassword: string): Promise<Document> => {
   const user = await userRepo.findByResetToken(rawToken);
   if (!user) throw ApiError.badRequest('Invalid or expired password reset token');
 
-  user.password             = newPassword; // pre-save hook hashes it
+  user.password             = newPassword;
   user.passwordResetToken   = undefined;
   user.passwordResetExpires = undefined;
-  // refreshTokens cleared by pre-save hook on password change
   await user.save();
-
   return user;
 };
 
-// ── 8. Verify Email ───────────────────────────────────────────────────────────
-const verifyEmail = async (rawToken) => {
+export const verifyEmail = async (rawToken: string): Promise<Document> => {
   const user = await userRepo.findByVerifyToken(rawToken);
   if (!user) throw ApiError.badRequest('Invalid or expired verification token');
 
@@ -198,34 +200,32 @@ const verifyEmail = async (rawToken) => {
   user.emailVerifyToken   = undefined;
   user.emailVerifyExpires = undefined;
   await user.save({ validateBeforeSave: false });
-
   return user;
 };
 
-// ── 9. Change Password ────────────────────────────────────────────────────────
-const changePassword = async (userId, currentPassword, newPassword) => {
+export const changePassword = async (
+  userId:          string,
+  currentPassword: string,
+  newPassword:     string
+): Promise<Document> => {
   const user = await userRepo.findByIdWithPassword(userId);
   if (!user) throw ApiError.notFound('User not found');
 
   const isMatch = await user.comparePassword(currentPassword);
   if (!isMatch) throw ApiError.unauthorized('Current password is incorrect');
 
-  user.password = newPassword; // pre-save hook hashes + clears refresh tokens
+  user.password = newPassword;
   await user.save();
-
   return user;
 };
 
-// ── 10. Unlock Account (Admin only) ───────────────────────────────────────────
-const unlockAccount = async (userId) => {
-  const user = await userRepo.updateById(userId, undefined, {
-    $set: { loginAttempts: 0 },
-    $unset: { lockUntil: 1 }
+export const unlockAccount = async (userId: string): Promise<Document> =>
+  userRepo.updateById(userId, undefined, {
+    $set:   { loginAttempts: 0 },
+    $unset: { lockUntil: 1 },
   });
-  return user;
-};
 
-module.exports = {
+export default {
   signup,
   login,
   logout,
@@ -237,5 +237,3 @@ module.exports = {
   changePassword,
   unlockAccount,
 };
-
-export {};

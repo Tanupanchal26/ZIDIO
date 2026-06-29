@@ -1,47 +1,40 @@
-// @ts-nocheck
-const ApiError = require('../utils/ApiError');
+import { Request, Response, NextFunction, RequestHandler } from 'express';
+import Joi from 'joi';
+import ApiError from '../utils/ApiError';
 
-/**
- * Validates req.body / req.params / req.query against a Joi schema object.
- *
- * Usage:
- *   router.post('/login', validate({ body: loginSchema }), controller)
- *   router.get('/:id',    validate({ params: idSchema }),  controller)
- */
-const validate = (schemas) => (req, res, next) => {
-  const parts = ['body', 'params', 'query'];
-  const allErrors = [];
+type ValidationTarget = 'body' | 'params' | 'query';
 
-  for (const part of parts) {
-    if (!schemas[part]) continue;
+interface ValidationSchemas {
+  body?:   Joi.ObjectSchema;
+  params?: Joi.ObjectSchema;
+  query?:  Joi.ObjectSchema;
+}
 
-    const { error } = schemas[part].validate(req[part], {
-      abortEarly:   true,     // fail fast to avoid multiple noisy “Validation failed” entries
-      stripUnknown: true,     // silently drop unknown keys
-      convert:      true,     // coerce types (string → number, etc.)
-    });
+const VALIDATION_TARGETS: ValidationTarget[] = ['body', 'params', 'query'];
 
-    if (error) {
-      const fieldErrors = error.details.map(d => ({
-        field:   d.path.join('.'),
-        message: d.message.replace(/['"]/g, ''),
-      }));
-      allErrors.push(...fieldErrors);
+const validate = (schemas: ValidationSchemas): RequestHandler =>
+  (req: Request, _res: Response, next: NextFunction) => {
+    for (const target of VALIDATION_TARGETS) {
+      const schema = schemas[target];
+      if (!schema) continue;
+
+      const { error } = schema.validate(req[target], {
+        abortEarly:   true,
+        stripUnknown: true,
+        convert:      true,
+      });
+
+      if (error) {
+        const [detail]   = error.details;
+        const field      = detail.path.join('.');
+        const message    = detail.message.replace(/['"]/g, '');
+        const fieldError = { field, message };
+        const apiErr     = ApiError.badRequest(message, [fieldError]);
+        apiErr.field     = field;
+        return next(apiErr);
+      }
     }
-  }
+    next();
+  };
 
-  if (allErrors.length > 0) {
-    const first = allErrors[0];
-    // Keep only the first validation issue to prevent duplicate noisy “Validation failed” payloads.
-    const err = ApiError.badRequest(first.message, [first]);
-    err.field = first.field;
-    return next(err);
-  }
-
-
-  next();
-};
-
-module.exports = validate;
-
-export {};
+export default validate;

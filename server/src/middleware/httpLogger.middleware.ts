@@ -6,7 +6,7 @@ const stream: StreamOptions = {
   write: (message: string) => logger.http(message.trim()),
 };
 
-morgan.token('request-id', (_req: Request, res) => (res.locals?.requestId as string) ?? '-');
+morgan.token('request-id', (_req: Request, res: any) => (res.locals?.requestId as string) ?? '-');
 morgan.token('tenant-id', (req: Request) => (req.user as { tenantId?: string } | undefined)?.tenantId ?? '-');
 
 const DEV_FORMAT = ':method :url :status :res[content-length] - :response-time ms [:request-id]';

@@ -1,24 +1,28 @@
-// @ts-nocheck
-const User    = require('../models/User');
-const ApiError = require('../utils/ApiError');
-const logger   = require('../common/logger').default;
-const { getRedisClient } = require('../config/redis');
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const User = require('../models/User');
+import ApiError from '../utils/ApiError';
+import logger from '../shared/utils/logger';
+import { getRedisClient } from '../config/redis';
+import { CACHE_TTL, REDIS_KEYS } from '../constants';
+import type { Document } from 'mongoose';
 
-const CACHE_TTL = 300; // 5 minutes
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type UserDoc = Document & Record<string, any>;
 
-const invalidateUserCache = async (userId) => {
+const USER_CACHE_TTL = CACHE_TTL.USER_SESSION;
+
+const invalidateUserCache = async (userId: string): Promise<void> => {
   const redis = getRedisClient();
-  if (redis) await redis.del(`user:${userId}`).catch(() => {});
+  if (redis) await redis.del(REDIS_KEYS.USER_CACHE(userId)).catch(() => undefined);
 };
 
-/** Retrieve a user's profile by ID */
-async function getProfile(userId) {
+export const getProfile = async (userId: string): Promise<UserDoc> => {
   const redis    = getRedisClient();
-  const cacheKey = `user:${userId}`;
+  const cacheKey = REDIS_KEYS.USER_CACHE(userId);
 
   if (redis) {
     const cached = await redis.get(cacheKey).catch(() => null);
-    if (cached) return JSON.parse(cached);
+    if (cached) return JSON.parse(cached) as UserDoc;
   }
 
   const user = await User.findById(userId).select('-password');
@@ -27,54 +31,48 @@ async function getProfile(userId) {
     throw ApiError.notFound('User not found');
   }
 
-  if (redis) await redis.setEx(cacheKey, CACHE_TTL, JSON.stringify(user)).catch(() => {});
-  return user;
-}
+  if (redis) {
+    await redis.setEx(cacheKey, USER_CACHE_TTL, JSON.stringify(user)).catch(() => undefined);
+  }
+  return user as UserDoc;
+};
 
-/** Retrieve user with password and auth fields for token verification */
-async function getUserForAuth(userId) {
+export const getUserForAuth = async (userId: string): Promise<UserDoc> => {
   const user = await User.findById(userId)
-    .select('+password +loginAttempts +lockUntil +refreshTokens');
+    .select('+password +loginAttempts +lockUntil +refreshTokens +passwordChangedAt');
   if (!user) {
     logger.warn(`User not found for auth: ${userId}`);
     throw ApiError.unauthorized('User not found');
   }
-  return user;
-}
+  return user as UserDoc;
+};
 
-/** Update a user's profile */
-async function updateProfile(userId, updateData) {
+export const updateProfile = async (userId: string, updateData: Record<string, unknown>): Promise<UserDoc> => {
   const user = await User.findByIdAndUpdate(userId, updateData, { new: true }).select('-password');
   if (!user) {
     logger.warn(`User not found for update: ${userId}`);
     throw ApiError.notFound('User not found');
   }
   await invalidateUserCache(userId);
-  return user;
-}
+  return user as UserDoc;
+};
 
-/** Delete a user's account */
-async function deleteAccount(userId) {
+export const deleteAccount = async (userId: string): Promise<void> => {
   const result = await User.findByIdAndDelete(userId);
   if (!result) {
     logger.warn(`User not found for deletion: ${userId}`);
     throw ApiError.notFound('User not found');
   }
   await invalidateUserCache(userId);
-}
+};
 
-/** Admin: retrieve all users */
-async function getAllUsers() {
-  const users = await User.find().select('-password');
-  return users;
-}
+export const getAllUsers = async (): Promise<UserDoc[]> =>
+  User.find().select('-password') as Promise<UserDoc[]>;
 
-module.exports = {
+export default {
   getProfile,
   getUserForAuth,
   updateProfile,
   deleteAccount,
   getAllUsers,
 };
-
-export {};

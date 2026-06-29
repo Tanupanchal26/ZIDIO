@@ -4,7 +4,12 @@ const emailService = require('./email.service');
 const ApiError    = require('../utils/ApiError');
 const { PAGINATION } = require('../constants');
 
-// io instance injected once at startup via init()
+/**
+ * Module-level Socket.IO server instance.
+ * Intentional mutable global — injected once at startup via init(io).
+ * Must be set before any notification that requires real-time push.
+ * @type {import('socket.io').Server | null}
+ */
 let _io = null;
 const init = (io) => { _io = io; };
 

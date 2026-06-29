@@ -64,8 +64,13 @@ exports.generateTasks = async (prompt, transcript = '') => {
     max_tokens: 500,
     temperature: 0.3,
   });
-  const parsed = JSON.parse(res.choices[0].message.content);
-  return parsed.tasks || [];
+  const raw = res.choices[0].message.content;
+  try {
+    const parsed = JSON.parse(raw);
+    return parsed.tasks || [];
+  } catch {
+    throw new Error(`AI returned invalid JSON for tasks: ${raw?.slice(0, 100)}`);
+  }
 };
 
 export {};
