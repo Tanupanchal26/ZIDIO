@@ -1,49 +1,60 @@
-// @ts-nocheck
-/**
- * Unified response envelope:
- * { success, statusCode, message, data, meta, requestId }
- */
-class ApiResponse {
-  constructor(statusCode, message, data = null, meta = null) {
+import { Response } from 'express';
+
+export interface PaginationMeta {
+  page:       number;
+  limit:      number;
+  total:      number;
+  totalPages: number;
+  hasNext:    boolean;
+  hasPrev:    boolean;
+}
+
+export class ApiResponse<T = unknown> {
+  readonly success:    boolean;
+  readonly statusCode: number;
+  readonly message:    string;
+  readonly data?:      T;
+  readonly meta?:      PaginationMeta;
+  requestId?: string;
+
+  constructor(statusCode: number, message: string, data?: T, meta?: PaginationMeta) {
     this.success    = statusCode < 400;
     this.statusCode = statusCode;
     this.message    = message;
-    if (data !== null)  this.data = data;
-    if (meta !== null)  this.meta = meta;
+    if (data  !== undefined) this.data = data;
+    if (meta  !== undefined) this.meta = meta;
   }
 
-  send(res) {
-    // Attach requestId from res.locals if set by requestId middleware
-    if (res.locals?.requestId) this.requestId = res.locals.requestId;
+  send(res: Response): Response {
+    if (res.locals?.requestId) this.requestId = res.locals.requestId as string;
     return res.status(this.statusCode).json(this);
   }
 
-  // ── Static helpers ─────────────────────────────────────────────────────────
-  static ok(res, data, message = 'Success', meta = null) {
-    return new ApiResponse(200, message, data, meta).send(res);
+  static ok<T>(res: Response, data: T, message = 'Success', meta?: PaginationMeta): Response {
+    return new ApiResponse<T>(200, message, data, meta).send(res);
   }
 
-  static created(res, data, message = 'Created successfully') {
-    return new ApiResponse(201, message, data).send(res);
+  static created<T>(res: Response, data: T, message = 'Created successfully'): Response {
+    return new ApiResponse<T>(201, message, data).send(res);
   }
 
-  static noContent(res) {
+  static noContent(res: Response): Response {
     return res.status(204).send();
   }
 
-  static paginated(res, data, { page, limit, total }) {
-    const meta = {
-      page,
-      limit,
-      total,
-      totalPages: Math.ceil(total / limit),
-      hasNext:    page * limit < total,
-      hasPrev:    page > 1,
+  static paginated<T>(
+    res:  Response,
+    data: T,
+    meta: Pick<PaginationMeta, 'page' | 'limit' | 'total'>
+  ): Response {
+    const fullMeta: PaginationMeta = {
+      ...meta,
+      totalPages: Math.ceil(meta.total / meta.limit),
+      hasNext:    meta.page * meta.limit < meta.total,
+      hasPrev:    meta.page > 1,
     };
-    return new ApiResponse(200, 'Success', data, meta).send(res);
+    return new ApiResponse<T>(200, 'Success', data, fullMeta).send(res);
   }
 }
 
-module.exports = ApiResponse;
-
-export {};
+export default ApiResponse;

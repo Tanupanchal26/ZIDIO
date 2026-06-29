@@ -1,13 +1,12 @@
-// @ts-nocheck
-/**
- * Wraps an async Express route handler and forwards any rejection to next(err).
- * Eliminates try/catch boilerplate in controllers.
- *
- * Usage:  router.get('/path', asyncHandler(async (req, res) => { ... }));
- */
-const asyncHandler = (fn) => (req, res, next) =>
-  Promise.resolve(fn(req, res, next)).catch(next);
+import { Request, Response, NextFunction, RequestHandler } from 'express';
 
-module.exports = asyncHandler;
+type AsyncRouteHandler = (
+  req:  Request,
+  res:  Response,
+  next: NextFunction
+) => Promise<unknown>;
 
-export {};
+const asyncHandler = (fn: AsyncRouteHandler): RequestHandler =>
+  (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
+
+export default asyncHandler;

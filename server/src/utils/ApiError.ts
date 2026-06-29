@@ -1,28 +1,48 @@
-// @ts-nocheck
-const { HTTP } = require('../constants');
+import { HTTP } from '../constants';
 
-/**
- * Operational error — expected, user-facing errors (4xx mostly).
- * Distinguished from programmer errors so the error handler can behave differently.
- */
-class ApiError extends Error {
-  constructor(statusCode, message, errors = []) {
+export interface FieldError {
+  field:   string;
+  message: string;
+}
+
+export class ApiError extends Error {
+  readonly statusCode:    number;
+  readonly isOperational: boolean;
+  readonly errors:        FieldError[];
+  field?: string;
+
+  constructor(statusCode: number, message: string, errors: FieldError[] = []) {
     super(message);
+    this.name          = 'ApiError';
     this.statusCode    = statusCode;
-    this.errors        = errors;   // array of field-level validation errors
-    this.isOperational = true;     // marks as a known, handled error
+    this.errors        = errors;
+    this.isOperational = true;
     Error.captureStackTrace(this, this.constructor);
   }
 
-  // ── Static factory helpers ─────────────────────────────────────────────────
-  static badRequest(msg, errors)  { return new ApiError(HTTP.BAD_REQUEST,  msg, errors); }
-  static unauthorized(msg = 'Unauthorized')  { return new ApiError(HTTP.UNAUTHORIZED,  msg); }
-  static forbidden(msg = 'Forbidden')        { return new ApiError(HTTP.FORBIDDEN,      msg); }
-  static notFound(msg = 'Resource not found'){ return new ApiError(HTTP.NOT_FOUND,      msg); }
-  static conflict(msg)            { return new ApiError(HTTP.CONFLICT,      msg); }
-  static internal(msg = 'Internal server error') { return new ApiError(HTTP.INTERNAL_ERROR, msg); }
+  static badRequest(msg: string, errors?: FieldError[]): ApiError {
+    return new ApiError(HTTP.BAD_REQUEST, msg, errors);
+  }
+
+  static unauthorized(msg = 'Unauthorized'): ApiError {
+    return new ApiError(HTTP.UNAUTHORIZED, msg);
+  }
+
+  static forbidden(msg = 'Forbidden'): ApiError {
+    return new ApiError(HTTP.FORBIDDEN, msg);
+  }
+
+  static notFound(msg = 'Resource not found'): ApiError {
+    return new ApiError(HTTP.NOT_FOUND, msg);
+  }
+
+  static conflict(msg: string): ApiError {
+    return new ApiError(HTTP.CONFLICT, msg);
+  }
+
+  static internal(msg = 'Internal server error'): ApiError {
+    return new ApiError(HTTP.INTERNAL_ERROR, msg);
+  }
 }
 
-module.exports = ApiError;
-
-export {};
+export default ApiError;
