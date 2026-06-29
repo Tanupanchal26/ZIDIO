@@ -2,6 +2,9 @@
 const User = require('../models/User');
 import ApiError from '../utils/ApiError';
 import logger from '../shared/utils/logger';
+
+const sanitizeLog = (val: unknown): string =>
+  String(val).replace(/[\r\n\t\x00-\x1f\x7f]/g, '_');
 import { getRedisClient } from '../config/redis';
 import { CACHE_TTL, REDIS_KEYS } from '../constants';
 import type { Document } from 'mongoose';
@@ -27,7 +30,7 @@ export const getProfile = async (userId: string): Promise<UserDoc> => {
 
   const user = await User.findById(userId).select('-password');
   if (!user) {
-    logger.warn(`User not found: ${userId}`);
+    logger.warn(`User not found: ${sanitizeLog(userId)}`);
     throw ApiError.notFound('User not found');
   }
 
@@ -41,7 +44,7 @@ export const getUserForAuth = async (userId: string): Promise<UserDoc> => {
   const user = await User.findById(userId)
     .select('+password +loginAttempts +lockUntil +refreshTokens +passwordChangedAt');
   if (!user) {
-    logger.warn(`User not found for auth: ${userId}`);
+    logger.warn(`User not found for auth: ${sanitizeLog(userId)}`);
     throw ApiError.unauthorized('User not found');
   }
   return user as UserDoc;
@@ -50,7 +53,7 @@ export const getUserForAuth = async (userId: string): Promise<UserDoc> => {
 export const updateProfile = async (userId: string, updateData: Record<string, unknown>): Promise<UserDoc> => {
   const user = await User.findByIdAndUpdate(userId, updateData, { new: true }).select('-password');
   if (!user) {
-    logger.warn(`User not found for update: ${userId}`);
+    logger.warn(`User not found for update: ${sanitizeLog(userId)}`);
     throw ApiError.notFound('User not found');
   }
   await invalidateUserCache(userId);
@@ -60,7 +63,7 @@ export const updateProfile = async (userId: string, updateData: Record<string, u
 export const deleteAccount = async (userId: string): Promise<void> => {
   const result = await User.findByIdAndDelete(userId);
   if (!result) {
-    logger.warn(`User not found for deletion: ${userId}`);
+    logger.warn(`User not found for deletion: ${sanitizeLog(userId)}`);
     throw ApiError.notFound('User not found');
   }
   await invalidateUserCache(userId);
