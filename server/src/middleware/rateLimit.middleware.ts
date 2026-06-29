@@ -1,43 +1,49 @@
-// @ts-nocheck
-const rateLimit = require('express-rate-limit');
-const { HTTP } = require('../constants');
+import rateLimit, { type RateLimitRequestHandler } from 'express-rate-limit';
+import { RedisStore } from 'rate-limit-redis';
+import { getRedisClient } from '../config/redis';
+import { HTTP } from '../constants';
 
-const handler = (req, res) =>
+const rateLimitHandler = (_req: unknown, res: any) =>
   res.status(HTTP.TOO_MANY_REQUESTS).json({
-    success: false,
+    success:    false,
     statusCode: HTTP.TOO_MANY_REQUESTS,
-    message: 'Too many requests — please slow down.',
-    requestId: res.locals?.requestId,
+    message:    'Too many requests — please slow down.',
+    requestId:  res.locals?.requestId,
   });
 
-// ── General API limiter — 100 req / 15 min per IP ────────────────────────────
-const apiLimiter = rateLimit({
-  windowMs:         60 * 1000,
-  max:              120,
-  standardHeaders:  true,   // Return rate limit info in RateLimit-* headers
-  legacyHeaders:    false,
-  handler,
+const makeStore = (prefix: string) => {
+  const client = getRedisClient();
+  if (!client) return undefined;
+  return new RedisStore({ sendCommand: (...args: string[]) => (client as any).sendCommand(args), prefix });
+};
+
+/** General API limiter — 120 req / 60 s per IP (globally enforced via Redis) */
+export const apiLimiter: RateLimitRequestHandler = rateLimit({
+  windowMs:        60 * 1_000,
+  max:             120,
+  standardHeaders: true,
+  legacyHeaders:   false,
+  store:           makeStore('rl:api:'),
+  handler:         rateLimitHandler,
 });
 
-// ── Auth limiter — 10 req / 15 min (brute-force protection) ─────────────────
-const authLimiter = rateLimit({
-  windowMs:         15 * 60 * 1000,
-  max:              10,
-  standardHeaders:  true,
-  legacyHeaders:    false,
-  handler,
-  skipSuccessfulRequests: true, // only count failed attempts
+/** Auth limiter — 10 req / 15 min (brute-force protection, globally enforced) */
+export const authLimiter: RateLimitRequestHandler = rateLimit({
+  windowMs:               15 * 60 * 1_000,
+  max:                    10,
+  standardHeaders:        true,
+  legacyHeaders:          false,
+  store:                  makeStore('rl:auth:'),
+  handler:                rateLimitHandler,
+  skipSuccessfulRequests: true,
 });
 
-// ── AI endpoints — 20 req / min (cost control) ──────────────────────────────
-const aiLimiter = rateLimit({
-  windowMs:         60 * 1000,
-  max:              20,
-  standardHeaders:  true,
-  legacyHeaders:    false,
-  handler,
+/** AI endpoints — 20 req / min (cost control, globally enforced) */
+export const aiLimiter: RateLimitRequestHandler = rateLimit({
+  windowMs:        60 * 1_000,
+  max:             20,
+  standardHeaders: true,
+  legacyHeaders:   false,
+  store:           makeStore('rl:ai:'),
+  handler:         rateLimitHandler,
 });
-
-module.exports = { apiLimiter, authLimiter, aiLimiter };
-
-export {};

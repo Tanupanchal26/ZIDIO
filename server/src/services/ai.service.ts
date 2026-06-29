@@ -115,11 +115,17 @@ exports.generateMeetingMinutes = async (meetingId) => {
 };
 
 // ── AI Assistant ──────────────────────────────────────────────────────────────
-exports.assistantChat = async (meetingId, userMessage, history = []) => {
-  const [aiResult, allMeetings] = await Promise.all([
+exports.assistantChat = async (meetingId, tenantId, userMessage, history = []) => {
+  const [aiResult, meeting] = await Promise.all([
     AIResult.findOne({ meeting: meetingId }),
-    Meeting.find({}).select('title').limit(20).lean(),
+    Meeting.findOne({ _id: meetingId, tenantId }).select('title').lean(),
   ]);
+
+  // Scope meeting titles to the same tenant — never cross-tenant
+  const tenantMeetings = await Meeting.find({ tenantId })
+    .select('title')
+    .limit(20)
+    .lean();
 
   const transcript = aiResult?.transcript ||
     (aiResult?.transcriptChunks || []).map(c => `${c.speaker}: ${c.text}`).join('\n');
@@ -128,7 +134,7 @@ exports.assistantChat = async (meetingId, userMessage, history = []) => {
     transcript,
     summary:       aiResult?.summary || '',
     history,
-    meetingTitles: allMeetings.map(m => m.title),
+    meetingTitles: tenantMeetings.map(m => m.title),
   });
 };
 
@@ -140,17 +146,18 @@ exports.generateTasksFromMeeting = async (meetingId, prompt = '') => {
 
 // ── Semantic Search ───────────────────────────────────────────────────────────
 exports.searchMeetings = async (tenantId, query) => {
+  // Select only summary — avoid loading full transcript (can be MBs per document)
   const meetings = await Meeting.find({ tenantId })
-    .select('title transcript summary createdAt')
+    .select('title summary createdAt')
     .limit(50)
     .lean();
 
   const documents = meetings
-    .filter(m => m.summary || m.transcript)
+    .filter(m => m.summary)
     .map(m => ({
       id:      m._id.toString(),
       title:   m.title,
-      content: m.summary || m.transcript?.slice(0, 1000) || '',
+      content: m.summary,
       date:    m.createdAt,
     }));
 

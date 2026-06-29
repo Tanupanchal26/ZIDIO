@@ -45,6 +45,8 @@ const notificationSchema = new mongoose.Schema({
 
 notificationSchema.index({ recipient: 1, isRead: 1, createdAt: -1 });
 notificationSchema.index({ recipient: 1, createdAt: -1 });
+// Auto-expire notifications after 90 days to prevent unbounded collection growth
+notificationSchema.index({ createdAt: 1 }, { expireAfterSeconds: 90 * 24 * 60 * 60 });
 
 module.exports = mongoose.model('Notification', notificationSchema);
 

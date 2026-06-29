@@ -41,6 +41,8 @@ messageSchema.index({ channel: 1, createdAt: -1 });
 messageSchema.index({ meeting: 1, createdAt: -1 });
 messageSchema.index({ parentId: 1, createdAt: 1 });
 messageSchema.index({ tenantId: 1, channel: 1, createdAt: -1 });
+// Filter index so queries with isDeleted: false stay fast as collection grows
+messageSchema.index({ isDeleted: 1, createdAt: -1 });
 
 module.exports = mongoose.model('Message', messageSchema);
 

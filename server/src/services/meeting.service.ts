@@ -68,7 +68,7 @@ const getMeeting = async (meetingId, tenantId, userId) => {
 // ── Update ────────────────────────────────────────────────────────────────────
 const updateMeeting = async (meetingId, tenantId, userId, data, userRole) => {
   const meeting = await meetingRepo.findById(meetingId, tenantId);
-  const isAdminOrAbove = [ROLES.ADMIN].includes(userRole);
+  const isAdminOrAbove = [ROLES.ADMIN, ROLES.SUPER_ADMIN].includes(userRole);
   if (meeting.host.toString() !== userId.toString() && !isAdminOrAbove) {
     throw ApiError.forbidden('Only the host or an admin can edit this meeting');
   }
@@ -90,10 +90,10 @@ const deleteMeeting = async (meetingId, tenantId, userId, userRole) => {
 const inviteParticipants = async (meetingId, tenantId, actorId, userIds) => {
   const meeting = await meetingRepo.findById(meetingId, tenantId);
   assertHost(meeting, actorId);
-  for (const uid of userIds) {
-    await meetingRepo.addInvitee(meetingId, tenantId, { user: uid, status: 'pending' });
-    await meetingRepo.addParticipant(meetingId, tenantId, uid);
-  }
+  await Promise.all(userIds.flatMap(uid => [
+    meetingRepo.addInvitee(meetingId, tenantId, { user: uid, status: 'pending' }),
+    meetingRepo.addParticipant(meetingId, tenantId, uid),
+  ]));
   notifService.notifyMeetingInvite(meeting, userIds, actorId).catch(() => {});
   return meetingRepo.findById(meetingId, tenantId);
 };
@@ -143,14 +143,8 @@ const joinByRoomId = async (roomId, tenantId, userId) => {
   if (!meeting) throw ApiError.notFound('Meeting not found. Check the room code.');
   if (meeting.status === MEETING_STATUS.ENDED) throw ApiError.badRequest('This meeting has already ended.');
 
-  // Add user to participants if not already
-  const isAlreadyParticipant = meeting.participants.some(
-    p => p.toString() === userId.toString()
-  );
-  if (!isAlreadyParticipant) {
-    meeting.participants.push(userId);
-    await meeting.save();
-  }
+  // Atomic add — no read-modify-write race condition
+  await Meeting.findByIdAndUpdate(meeting._id, { $addToSet: { participants: userId } });
 
   return Meeting.findById(meeting._id)
     .populate('host', 'name email avatar')

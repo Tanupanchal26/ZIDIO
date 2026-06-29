@@ -1,13 +1,15 @@
-// @ts-nocheck
 // Load and validate env FIRST — crashes early if misconfigured
 const config = require('./config/env');
 
 const http   = require('http');
 const { Server } = require('socket.io');
+const { createAdapter } = require('@socket.io/redis-adapter');
 const app    = require('./app');
 const { connectDB, disconnectDB } = require('./config/db');
 const { connectRedis, getRedisClient } = require('./config/redis');
 const initSockets = require('./sockets');
+const { initAIQueue, initAIWorker } = require('./queues/ai.queue');
+const aiJobProcessor = require('./queues/ai.worker');
 const logger = require('./shared/utils/logger').default;
 
 const server = http.createServer(app);
@@ -22,13 +24,28 @@ const io = new Server(server, {
   pingInterval: 25000,
 });
 
-initSockets(io);
-
 // ── Startup ───────────────────────────────────────────────────────────────────
 const start = async () => {
   try {
     await connectDB();
-    await connectRedis();
+    const redis = await connectRedis();
+
+    // ── Socket.IO Redis adapter — enables cross-pod pub/sub ──────────────────
+    if (redis) {
+      const pubClient = redis.duplicate();
+      const subClient = redis.duplicate();
+      await Promise.all([pubClient.connect(), subClient.connect()]);
+      io.adapter(createAdapter(pubClient, subClient));
+      logger.info('[SOCKET] Redis adapter attached — cross-pod messaging enabled');
+    } else {
+      logger.warn('[SOCKET] Redis unavailable — running single-node Socket.IO (no cross-pod messaging)');
+    }
+
+    initSockets(io);
+
+    // ── AI job queue ───────────────────────────────────────────────────
+    initAIQueue();
+    initAIWorker(aiJobProcessor);
 
     // Start the server
     server.listen(config.port, '0.0.0.0', () => {
@@ -70,10 +87,7 @@ process.on('SIGINT',  () => shutdown('SIGINT'));  // Ctrl+C in dev
 // Catch unhandled rejections that slipped past asyncHandler
 process.on('unhandledRejection', (reason) => {
   logger.error(`[SERVER] Unhandled rejection: ${reason}`);
-  console.log('[Sentry] Rejection handler registered');
 });
-
-// Force restart 2
 
 start();
 
