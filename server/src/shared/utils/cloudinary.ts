@@ -1,15 +1,16 @@
 import { v2 as cloudinary } from 'cloudinary';
-import { env } from '../config/env';
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const config = require('../../config/env');
 
 cloudinary.config({
-  cloud_name: env.CLOUDINARY_CLOUD_NAME,
-  api_key: env.CLOUDINARY_API_KEY,
-  api_secret: env.CLOUDINARY_API_SECRET,
+  cloud_name: config.cloudinary.name,
+  api_key:    config.cloudinary.key,
+  api_secret: config.cloudinary.secret,
 });
 
 export const uploadToCloudinary = async (filePath: string) => {
   return await cloudinary.uploader.upload(filePath, {
-    folder: env.CLOUDINARY_UPLOAD_FOLDER || 'intellmeet',
+    folder: config.cloudinary.folder || 'intellmeet',
   });
 };
 

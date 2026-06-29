@@ -1,6 +1,8 @@
 // @ts-nocheck
 const { openai: { apiKey } } = require('../config/env');
 
+let _client = null;
+
 class MockOpenAI {
   chat = {
     completions: {

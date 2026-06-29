@@ -2,7 +2,7 @@
 const authService  = require('../../services/auth.service');
 const asyncHandler = require('../../utils/asyncHandler');
 const ApiResponse  = require('../../utils/ApiResponse');
-const logger       = require('../common/logger').default;
+const logger       = require('../../shared/utils/logger').default;
 const { addToBlacklist } = require('../../utils/redisBlacklist');
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -10,6 +10,19 @@ const { addToBlacklist } = require('../../utils/redisBlacklist');
 /** Extract refresh token from HTTP-only cookie OR request body (mobile clients) */
 const getRefreshToken = (req) =>
   req.cookies?.refreshToken || req.body?.refreshToken;
+
+const COOKIE_OPTIONS = {
+  httpOnly: true,
+  secure:   process.env.NODE_ENV === 'production',
+  sameSite: 'lax',
+  path:     '/',
+};
+
+const setRefreshCookie = (res, token) =>
+  res.cookie('refreshToken', token, { ...COOKIE_OPTIONS, maxAge: 7 * 24 * 60 * 60 * 1000 });
+
+const clearRefreshCookie = (res) =>
+  res.clearCookie('refreshToken', COOKIE_OPTIONS);
 
 /** Sanitise user object for API responses */
 const userPayload = (user) => ({

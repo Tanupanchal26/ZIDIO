@@ -4,6 +4,7 @@ import { authService } from '../api/auth.api';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { ROUTES } from '../constants';
+import { disconnectSocket } from '../utils/socket';
 
 export const useAuth = () => {
   const dispatch = useAppDispatch();
@@ -30,10 +31,17 @@ export const useAuth = () => {
     navigate(ROUTES.DASHBOARD);
   };
 
-  const logout = () => {
-    dispatch(clearAuth());
-    navigate(ROUTES.LOGIN);
-    toast.success('Signed out');
+  const logout = async () => {
+    try {
+      await authService.logout();
+    } catch {
+      // Ignore API errors — clear local state regardless
+    } finally {
+      disconnectSocket();
+      dispatch(clearAuth());
+      navigate(ROUTES.LOGIN);
+      toast.success('Signed out');
+    }
   };
 
   return { user, token, isAuthenticated, login, register, logout };

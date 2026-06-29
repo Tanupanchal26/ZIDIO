@@ -1,9 +1,7 @@
-// @ts-nocheck
-const Joi = require('joi');
+import Joi from 'joi';
+import { mongoId, idParam } from './common.schema';
 
-const mongoId = Joi.string().hex().length(24);
-
-const createTeam = {
+export const createTeam = {
   body: Joi.object({
     name:        Joi.string().trim().min(2).max(80).required(),
     description: Joi.string().max(500).allow('').optional(),
@@ -16,7 +14,7 @@ const createTeam = {
   }),
 };
 
-const updateTeam = {
+export const updateTeam = {
   params: Joi.object({ id: mongoId.required() }),
   body: Joi.object({
     name:        Joi.string().trim().min(2).max(80),
@@ -30,15 +28,13 @@ const updateTeam = {
   }).min(1),
 };
 
-const teamParam = {
-  params: Joi.object({ id: mongoId.required() }),
-};
+export const teamParam = idParam;
 
-const memberParam = {
+export const memberParam = {
   params: Joi.object({ id: mongoId.required(), userId: mongoId.required() }),
 };
 
-const inviteMember = {
+export const inviteMember = {
   params: Joi.object({ id: mongoId.required() }),
   body: Joi.object({
     userId: mongoId.required(),
@@ -46,13 +42,9 @@ const inviteMember = {
   }),
 };
 
-const updateMemberRole = {
+export const updateMemberRole = {
   params: Joi.object({ id: mongoId.required(), userId: mongoId.required() }),
   body: Joi.object({
     role: Joi.string().valid('admin', 'member', 'guest').required(),
   }),
 };
-
-module.exports = { createTeam, updateTeam, teamParam, memberParam, inviteMember, updateMemberRole };
-
-export {};

@@ -4,7 +4,7 @@ const crypto = require('crypto');
 const { jwt: jwtCfg, isProd, clientUrl } = require('../config/env');
 const { AUTH } = require('../constants');
 // Refresh token model for persisted storage
-const RefreshToken = require('../models/refreshToken.model');
+const RefreshToken = require('../models/refreshToken.model').default;
 
 // ── Token generation ──────────────────────────────────────────────────────────
 
@@ -80,7 +80,7 @@ const setRefreshCookie = (res, refreshToken) => {
     secure:   isProd,               // HTTPS only in production
     sameSite: isProd ? 'strict' : 'lax',
     maxAge:   AUTH.COOKIE_MAX_AGE,  // 7 days in ms
-    path:     '/api/v1/auth',       // restrict cookie scope to auth routes
+    path:     '/',       // must be '/' so cookie is sent to all auth routes
   });
 };
 
@@ -101,10 +101,11 @@ const clearRefreshCookie = (res) => {
  * Returns { accessToken, refreshToken }.
  * Call setRefreshCookie() separately — keeps this pure.
  */
-const generateTokenPair = (user) => ({
-  accessToken:  generateAccessToken({ id: user._id, role: user.role, email: user.email }),
-  refreshToken: generateRefreshToken(user._id),
-});
+const generateTokenPair = async (user) => {
+  const accessToken  = generateAccessToken({ id: user._id, role: user.role, email: user.email });
+  const refreshToken = await generateRefreshToken(user._id);
+  return { accessToken, refreshToken };
+};
 
 module.exports = {
   generateAccessToken,

@@ -1,3 +1,9 @@
+# ── Namespace ──────────────────────────────────────────────────────────────────
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: intellmeet
+---
 # ── API Deployment ─────────────────────────────────────────────────────────────
 apiVersion: apps/v1
 kind: Deployment
@@ -24,8 +30,9 @@ spec:
       terminationGracePeriodSeconds: 30
       containers:
         - name: api
-          image: <ECR_URI>/intellmeet-backend:latest
-          imagePullPolicy: Always
+          # Fix Issue 16: IMAGE_TAG is injected by CI/CD at deploy time — never use :latest
+          image: <ECR_URI>/intellmeet-backend:IMAGE_TAG
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 5000
           envFrom:
@@ -34,6 +41,13 @@ spec:
           env:
             - name: NODE_ENV
               value: production
+          securityContext:
+            readOnlyRootFilesystem: true
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - name: app-tmp
+              mountPath: /app/tmp
           resources:
             requests:
               cpu: "250m"
@@ -61,6 +75,11 @@ spec:
               port: 5000
             failureThreshold: 30
             periodSeconds: 5
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        - name: app-tmp
+          emptyDir: {}
 ---
 apiVersion: v1
 kind: Service
@@ -94,10 +113,15 @@ spec:
         app: intellmeet-web
         tier: frontend
     spec:
+      # Fix Issue 17: add securityContext — frontend was running as root
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 101    # nginx default non-root user
       containers:
         - name: web
-          image: <ECR_URI>/intellmeet-frontend:latest
-          imagePullPolicy: Always
+          # Fix Issue 16: IMAGE_TAG is injected by CI/CD at deploy time — never use :latest
+          image: <ECR_URI>/intellmeet-frontend:IMAGE_TAG
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 80
           resources:
@@ -107,6 +131,14 @@ spec:
             limits:
               cpu: "200m"
               memory: "256Mi"
+          # nginx needs writable tmp dirs even with readOnlyRootFilesystem
+          volumeMounts:
+            - name: nginx-tmp
+              mountPath: /tmp
+            - name: nginx-cache
+              mountPath: /var/cache/nginx
+            - name: nginx-run
+              mountPath: /var/run
           livenessProbe:
             httpGet:
               path: /
@@ -119,6 +151,13 @@ spec:
               port: 80
             initialDelaySeconds: 5
             periodSeconds: 10
+      volumes:
+        - name: nginx-tmp
+          emptyDir: {}
+        - name: nginx-cache
+          emptyDir: {}
+        - name: nginx-run
+          emptyDir: {}
 ---
 apiVersion: v1
 kind: Service
@@ -159,13 +198,8 @@ spec:
           type: Utilization
           averageUtilization: 80
 ---
-# ── Namespace ──────────────────────────────────────────────────────────────────
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: intellmeet
----
-# ── Secrets Template (values injected by CI/CD, never committed) ───────────────
+# ── Secrets (values injected by CI/CD via External Secrets Operator or kubectl) ─
+# Never commit real values here. Use AWS Secrets Manager + External Secrets Operator.
 # kubectl create secret generic intellmeet-secrets \
 #   --from-literal=MONGO_URI=<value> \
 #   --from-literal=REDIS_URL=<value> \
@@ -179,13 +213,12 @@ metadata:
   name: intellmeet-secrets
   namespace: intellmeet
 type: Opaque
-# data values are base64-encoded — replace with sealed-secrets or external-secrets in production
 stringData:
-  MONGO_URI: "<inject-from-secrets-manager>"
-  REDIS_URL: "<inject-from-secrets-manager>"
-  JWT_SECRET: "<inject-from-secrets-manager>"
-  JWT_REFRESH_SECRET: "<inject-from-secrets-manager>"
-  OPENAI_API_KEY: "<inject-from-secrets-manager>"
+  MONGO_URI:             "<inject-from-secrets-manager>"
+  REDIS_URL:             "<inject-from-secrets-manager>"
+  JWT_SECRET:            "<inject-from-secrets-manager>"
+  JWT_REFRESH_SECRET:    "<inject-from-secrets-manager>"
+  OPENAI_API_KEY:        "<inject-from-secrets-manager>"
   CLOUDINARY_CLOUD_NAME: "<inject-from-secrets-manager>"
-  CLOUDINARY_API_KEY: "<inject-from-secrets-manager>"
+  CLOUDINARY_API_KEY:    "<inject-from-secrets-manager>"
   CLOUDINARY_API_SECRET: "<inject-from-secrets-manager>"

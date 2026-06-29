@@ -1,10 +1,8 @@
-// @ts-nocheck
-const Joi = require('joi');
-const { MEETING_STATUS } = require('../constants');
+import Joi from 'joi';
+import { mongoId, idParam, pagination } from './common.schema';
+import { MEETING_STATUS } from '../constants';
 
-const mongoId = Joi.string().hex().length(24);
-
-const createMeeting = {
+export const createMeeting = {
   body: Joi.object({
     title:        Joi.string().trim().min(3).max(120).required(),
     description:  Joi.string().max(1000).allow('').optional(),
@@ -36,7 +34,7 @@ const createMeeting = {
   }),
 };
 
-const updateMeeting = {
+export const updateMeeting = {
   params: Joi.object({ id: mongoId.required() }),
   body: Joi.object({
     title:       Joi.string().trim().min(3).max(120),
@@ -57,34 +55,30 @@ const updateMeeting = {
   }).min(1),
 };
 
-const getMeeting = {
-  params: Joi.object({ id: mongoId.required() }),
-};
+export const getMeeting = idParam;
 
-const listMeetings = {
-  query: Joi.object({
-    page:   Joi.number().integer().min(1).default(1),
-    limit:  Joi.number().integer().min(1).max(100).default(20),
+export const listMeetings = {
+  query: pagination.keys({
     status: Joi.string().valid(...Object.values(MEETING_STATUS)).optional(),
     search: Joi.string().max(100).allow('').optional(),
   }),
 };
 
-const inviteParticipants = {
+export const inviteParticipants = {
   params: Joi.object({ id: mongoId.required() }),
   body: Joi.object({
     userIds: Joi.array().items(mongoId).min(1).max(50).required(),
   }),
 };
 
-const respondToInvite = {
+export const respondToInvite = {
   params: Joi.object({ id: mongoId.required() }),
   body: Joi.object({
     status: Joi.string().valid('accepted', 'declined').required(),
   }),
 };
 
-const upsertNote = {
+export const upsertNote = {
   params: Joi.object({ id: mongoId.required() }),
   body: Joi.object({
     content:     Joi.string().max(50000).allow(''),
@@ -103,10 +97,3 @@ const upsertNote = {
     sharedWith: Joi.array().items(mongoId),
   }),
 };
-
-module.exports = {
-  createMeeting, updateMeeting, getMeeting,
-  listMeetings, inviteParticipants, respondToInvite, upsertNote,
-};
-
-export {};

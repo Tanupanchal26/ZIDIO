@@ -9,10 +9,18 @@ const GoogleAuthSuccess = () => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const [params] = useSearchParams();
-  useEffect(() => {
 
-    const getParam = (key: string) => params.get(key) || new URLSearchParams(window.location.hash.substring(1)).get(key);
-    const token = getParam('token');
+  useEffect(() => {
+    // Read token from short-lived cookie (more secure than URL param)
+    const getCookie = (name: string) => {
+      const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+      return match ? decodeURIComponent(match[2]) : null;
+    };
+
+    const token = getCookie('__oauth_token') || params.get('token');
+
+    // Clear the cookie immediately after reading
+    document.cookie = '__oauth_token=; Max-Age=0; path=/';
 
     if (!token) {
       toast.error('Google sign-in failed.');
@@ -21,22 +29,17 @@ const GoogleAuthSuccess = () => {
     }
 
     const user = {
-      id:         getParam('id')         || '',
-      name:       getParam('name')       || '',
-      email:      getParam('email')      || '',
-      avatar:     getParam('avatar')     || '',
-      role:       getParam('role')       || 'employee',
-      isVerified: getParam('isVerified') === 'true',
+      id:         params.get('id')         || '',
+      name:       params.get('name')       || '',
+      email:      params.get('email')      || '',
+      avatar:     params.get('avatar')     || '',
+      role:       params.get('role')       || 'member',
+      isVerified: params.get('isVerified') === 'true',
     };
 
-    // 1. Save to localStorage
     localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, token);
     localStorage.setItem('im_user', JSON.stringify(user));
-
-    // 2. Save to Redux
     dispatch(setCredentials({ user, accessToken: token }));
-
-    // 3. Done
     toast.success(`Welcome, ${user.name || 'back'}! 🎉`);
     navigate(ROUTES.DASHBOARD, { replace: true });
   }, []);

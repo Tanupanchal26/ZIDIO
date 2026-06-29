@@ -8,14 +8,18 @@ module.exports = (io, socket) => {
 
   socket.on('chat:message', async ({ meetingId, content }) => {
     if (!socket.user?.id || !content?.trim()) return;
-    const message = await Message.create({
-      meeting: meetingId,
-      sender:  socket.user.id,
-      content,
-      type: 'text',
-    });
-    const populated = await message.populate('sender', 'name avatar');
-    io.to(`chat:${meetingId}`).emit('chat:message', populated);
+    try {
+      const message = await Message.create({
+        meeting: meetingId,
+        sender:  socket.user.id,
+        content,
+        type: 'text',
+      });
+      const populated = await message.populate('sender', 'name avatar');
+      io.to(`chat:${meetingId}`).emit('chat:message', populated);
+    } catch (err) {
+      socket.emit('chat:error', { message: 'Failed to send message' });
+    }
   });
 
   socket.on('chat:typing', ({ meetingId, isTyping }) => {
@@ -34,26 +38,28 @@ module.exports = (io, socket) => {
 
   socket.on('channel:message', async ({ channelId, content, mentions = [], attachments = [] }) => {
     if (!socket.user?.id || !content?.trim()) return;
+    try {
+      const channel = await Channel.findById(channelId);
+      if (!channel) return;
 
-    const channel = await Channel.findById(channelId);
-    if (!channel) return;
+      const message = await Message.create({
+        tenantId: channel.tenantId,
+        channel:  channelId,
+        sender:   socket.user.id,
+        content,
+        mentions,
+        attachments,
+        type: attachments.length ? 'file' : 'text',
+      });
 
-    const message = await Message.create({
-      tenantId: channel.tenantId,
-      channel:  channelId,
-      sender:   socket.user.id,
-      content,
-      mentions,
-      attachments,
-      type: attachments.length ? 'file' : 'text',
-    });
+      await Channel.findByIdAndUpdate(channelId, { lastMessageAt: new Date() });
 
-    await Channel.findByIdAndUpdate(channelId, { lastMessageAt: new Date() });
-
-    const populated = await message.populate('sender', 'name avatar');
-    io.to(`channel:${channelId}`).emit('channel:message', populated);
-    // Confirm 'sent' to the original sender
-    socket.emit('channel:delivery', { messageId: message._id.toString(), state: 'sent' });
+      const populated = await message.populate('sender', 'name avatar');
+      io.to(`channel:${channelId}`).emit('channel:message', populated);
+      socket.emit('channel:delivery', { messageId: message._id.toString(), state: 'sent' });
+    } catch (err) {
+      socket.emit('chat:error', { message: 'Failed to send message' });
+    }
   });
 
   socket.on('channel:typing', ({ channelId, isTyping }) => {

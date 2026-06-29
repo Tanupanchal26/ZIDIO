@@ -1,9 +1,7 @@
-// @ts-nocheck
-const Joi = require('joi');
+import Joi from 'joi';
+import { mongoId, idParam, pagination } from './common.schema';
 
-const mongoId = Joi.string().hex().length(24);
-
-const createChannel = {
+export const createChannel = {
   params: Joi.object({ teamId: mongoId.required() }),
   body: Joi.object({
     name:        Joi.string().trim().min(1).max(80).required(),
@@ -13,7 +11,7 @@ const createChannel = {
   }),
 };
 
-const updateChannel = {
+export const updateChannel = {
   params: Joi.object({ id: mongoId.required() }),
   body: Joi.object({
     name:        Joi.string().trim().min(1).max(80),
@@ -22,11 +20,9 @@ const updateChannel = {
   }).min(1),
 };
 
-const channelParam = {
-  params: Joi.object({ id: mongoId.required() }),
-};
+export const channelParam = idParam;
 
-const sendMessage = {
+export const sendMessage = {
   params: Joi.object({ id: mongoId.required() }),
   body: Joi.object({
     content:     Joi.string().min(1).max(4000).required(),
@@ -41,29 +37,24 @@ const sendMessage = {
   }),
 };
 
-const editMessage = {
+export const editMessage = {
   params: Joi.object({ id: mongoId.required(), msgId: mongoId.required() }),
   body: Joi.object({
     content: Joi.string().min(1).max(4000).required(),
   }),
 };
 
-const reaction = {
+export const reaction = {
   params: Joi.object({ id: mongoId.required(), msgId: mongoId.required() }),
   body: Joi.object({
     emoji: Joi.string().min(1).max(10).required(),
   }),
 };
 
-const listMessages = {
+export const listMessages = {
   params: Joi.object({ id: mongoId.required() }),
-  query: Joi.object({
-    page:   Joi.number().integer().min(1).default(1),
+  query: pagination.keys({
     limit:  Joi.number().integer().min(1).max(100).default(50),
     before: Joi.string().isoDate().optional(),
   }),
 };
-
-module.exports = { createChannel, updateChannel, channelParam, sendMessage, editMessage, reaction, listMessages };
-
-export {};

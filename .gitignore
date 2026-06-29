@@ -1,4 +1,20 @@
+# Environment files — NEVER commit real secrets
+.env
+.env.*
+!.env.example
+
 # Logs
 server/logs/*.log
 server/logs/.*-audit.json
 server/logs/
+
+# Build output
+dist/
+coverage/
+
+# Dependencies
+node_modules/
+
+# OS
+.DS_Store
+Thumbs.db

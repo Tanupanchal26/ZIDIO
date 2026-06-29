@@ -17,7 +17,7 @@ const meetingSchema = new mongoose.Schema({
   participants: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   invitees:     { type: [inviteeSchema], default: [] },
 
-  roomId:       { type: String, required: true, unique: true },
+  roomId:       { type: String, required: true },
   status:       { type: String, enum: Object.values(MEETING_STATUS), default: MEETING_STATUS.SCHEDULED },
 
   scheduledAt:  { type: Date, default: null },
@@ -60,6 +60,8 @@ meetingSchema.index({ tenantId: 1, status: 1 });
 meetingSchema.index({ tenantId: 1, scheduledAt: 1 });
 meetingSchema.index({ tenantId: 1, host: 1 });
 meetingSchema.index({ tenantId: 1, createdAt: -1 });
+meetingSchema.index({ tenantId: 1, 'participants': 1 });
+meetingSchema.index({ roomId: 1 }, { unique: true });
 
 module.exports = mongoose.model('Meeting', meetingSchema);
 

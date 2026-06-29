@@ -16,9 +16,17 @@ exports.googleCallback = async (req, res) => {
       path:     '/',
     });
 
-    // Pass everything in URL so frontend needs NO extra API call
+    // Store token in a short-lived http-only cookie instead of URL param
+    // Frontend reads it once and clears it
+    res.cookie('__oauth_token', accessToken, {
+      httpOnly: false,   // frontend JS must read it once
+      secure:   isProd,
+      sameSite: 'lax',
+      maxAge:   60 * 1000, // 60 seconds — one-time use
+      path:     '/',
+    });
+
     const url = new URL(`${clientUrl}/auth/google/success`);
-    url.searchParams.set('token',      accessToken);
     url.searchParams.set('id',         String(user._id));
     url.searchParams.set('name',       user.name       || '');
     url.searchParams.set('email',      user.email      || '');

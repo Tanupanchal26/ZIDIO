@@ -7,12 +7,17 @@ const User           = require('../models/User');
 
 const CALLBACK_URL = process.env.GOOGLE_CALLBACK_URL || 'http://localhost:5000/api/v1/auth/google/callback';
 
-console.log('[Passport] Google callbackURL:', CALLBACK_URL);   // confirm at startup
+const GOOGLE_CLIENT_ID     = process.env.GOOGLE_CLIENT_ID;
+const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
+
+if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
+  console.warn('[Passport] Google OAuth skipped — GOOGLE_CLIENT_ID or GOOGLE_CLIENT_SECRET not set');
+} else {
 
 passport.use(new GoogleStrategy(
   {
-    clientID:     process.env.GOOGLE_CLIENT_ID,
-    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+    clientID:     GOOGLE_CLIENT_ID,
+    clientSecret: GOOGLE_CLIENT_SECRET,
     callbackURL:  CALLBACK_URL,
   },
   async (_accessToken, _refreshToken, profile, done) => {
@@ -57,6 +62,8 @@ passport.use(new GoogleStrategy(
     }
   }
 ));
+
+} // end if (GOOGLE_CLIENT_ID && GOOGLE_CLIENT_SECRET)
 
 passport.serializeUser((user, done) => done(null, user._id.toString()));
 passport.deserializeUser(async (id, done) => {

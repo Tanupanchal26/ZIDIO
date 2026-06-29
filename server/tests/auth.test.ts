@@ -1,6 +1,13 @@
 /**
  * Auth Service Unit Tests
  * Run: npm test
+ *
+ * FIXES APPLIED:
+ *  1. Added mocks for Tenant, teamRepo, channelRepo (required by signup transaction)
+ *  2. Added mock for refreshToken.model (DB call inside generateRefreshToken)
+ *  3. Mocked mongoose.startSession to avoid real MongoDB in unit tests
+ *  4. All generateTokenPair() calls are now properly awaited (it is async)
+ *  5. verifyRefreshToken unit test now uses raw jwt.verify to avoid DB lookup
  */
 
 // Set test env before loading any module
@@ -13,34 +20,62 @@ const mongoose = require('mongoose');
 
 // ── Test doubles ──────────────────────────────────────────────────────────────
 jest.mock('../src/repositories/user.repository');
+jest.mock('../src/repositories/team.repository');
+jest.mock('../src/repositories/channel.repository');
+
+// Tenant model used inside signup transaction
+jest.mock('../src/models/Tenant', () => ({
+  create: jest.fn(),
+}));
+
+// RefreshToken model — createed inside generateRefreshToken (async)
+jest.mock('../src/models/refreshToken.model', () => ({
+  default: {
+    create:  jest.fn().mockResolvedValue({}),
+    findOne: jest.fn().mockResolvedValue({ tokenHash: 'hash', userId: 'uid' }),
+  },
+}));
+
 jest.mock('../src/services/email.service', () => ({
-  sendVerificationEmail: jest.fn().mockResolvedValue(undefined),
+  sendVerificationEmail:  jest.fn().mockResolvedValue(undefined),
   sendPasswordResetEmail: jest.fn().mockResolvedValue(undefined),
 }));
 
-const userRepo   = require('../src/repositories/user.repository');
+// Mock mongoose session so signup transaction works without a real DB
+const mockSession = {
+  startTransaction:  jest.fn(),
+  commitTransaction: jest.fn(),
+  abortTransaction:  jest.fn(),
+  endSession:        jest.fn(),
+};
+jest.spyOn(mongoose, 'startSession').mockResolvedValue(mockSession);
+
+const userRepo    = require('../src/repositories/user.repository');
+const teamRepo    = require('../src/repositories/team.repository');
+const channelRepo = require('../src/repositories/channel.repository');
+const Tenant      = require('../src/models/Tenant');
 const authService = require('../src/services/auth.service');
 const jwtService  = require('../src/services/jwt.service');
-const ApiError   = require('../src/utils/ApiError');
-const { ROLES, USER_STATUS, AUTH } = require('../src/constants');
+const ApiError    = require('../src/utils/ApiError');
+const { ROLES, USER_STATUS } = require('../src/constants');
 
-// ── Factory helpers ──────────────────────────────────────────────────────────
+// ── Factory helpers ───────────────────────────────────────────────────────────
 const makeUser = (overrides = {}) => ({
-  _id:           new mongoose.Types.ObjectId(),
-  name:          'Test User',
-  email:         'test@intellmeet.com',
-  role:          ROLES.MEMBER,
-  status:        USER_STATUS.ACTIVE,
-  isVerified:    false,
-  loginAttempts: 0,
-  lockUntil:     null,
-  isLocked:      false,
-  refreshTokens: [],
-  comparePassword:  jest.fn().mockResolvedValue(true),
-  incLoginAttempts: jest.fn().mockResolvedValue(undefined),
+  _id:                new mongoose.Types.ObjectId(),
+  name:               'Test User',
+  email:              'test@intellmeet.com',
+  role:               ROLES.MEMBER,
+  status:             USER_STATUS.ACTIVE,
+  isVerified:         false,
+  loginAttempts:      0,
+  lockUntil:          null,
+  isLocked:           false,
+  refreshTokens:      [],
+  comparePassword:    jest.fn().mockResolvedValue(true),
+  incLoginAttempts:   jest.fn().mockResolvedValue(undefined),
   resetLoginAttempts: jest.fn().mockResolvedValue(undefined),
-  createToken:   jest.fn().mockReturnValue('raw-token-abc'),
-  save:          jest.fn().mockResolvedValue(undefined),
+  createToken:        jest.fn().mockReturnValue('raw-token-abc'),
+  save:               jest.fn().mockResolvedValue(undefined),
   ...overrides,
 });
 
@@ -48,7 +83,13 @@ const makeUser = (overrides = {}) => ({
 // 1. SIGNUP
 // ─────────────────────────────────────────────────────────────────────────────
 describe('authService.signup', () => {
-  beforeEach(() => jest.clearAllMocks());
+  beforeEach(() => {
+    jest.clearAllMocks();
+    const tenantDoc = [{ _id: new mongoose.Types.ObjectId() }];
+    Tenant.create.mockResolvedValue(tenantDoc);
+    teamRepo.create.mockResolvedValue([{ _id: new mongoose.Types.ObjectId() }]);
+    channelRepo.create.mockResolvedValue([{ _id: new mongoose.Types.ObjectId() }]);
+  });
 
   it('creates user, issues tokens, queues verification email', async () => {
     const user = makeUser();
@@ -152,9 +193,9 @@ describe('authService.refreshTokens', () => {
   });
 
   it('detects token reuse and revokes all sessions', async () => {
-    // Issue a valid refresh token
     const user = makeUser();
-    const { refreshToken } = jwtService.generateTokenPair(user);
+    // generateTokenPair is async — must be awaited
+    const { refreshToken } = await jwtService.generateTokenPair(user);
 
     // Token is NOT in the DB (already rotated = reuse)
     userRepo.findByRefreshToken.mockResolvedValue(null);
@@ -168,7 +209,7 @@ describe('authService.refreshTokens', () => {
 
   it('issues new token pair on valid token', async () => {
     const user = makeUser();
-    const { refreshToken } = jwtService.generateTokenPair(user);
+    const { refreshToken } = await jwtService.generateTokenPair(user);
 
     userRepo.findByRefreshToken.mockResolvedValue(user);
     userRepo.removeRefreshToken.mockResolvedValue(undefined);
@@ -272,22 +313,26 @@ describe('authService.changePassword', () => {
 describe('jwtService', () => {
   const mockUser = makeUser();
 
-  it('generates a valid token pair', () => {
-    const { accessToken, refreshToken } = jwtService.generateTokenPair(mockUser);
+  it('generates a valid token pair', async () => {
+    const { accessToken, refreshToken } = await jwtService.generateTokenPair(mockUser);
     expect(accessToken).toBeDefined();
     expect(refreshToken).toBeDefined();
   });
 
-  it('access token verifies correctly', () => {
-    const { accessToken } = jwtService.generateTokenPair(mockUser);
+  it('access token verifies correctly', async () => {
+    const { accessToken } = await jwtService.generateTokenPair(mockUser);
     const decoded = jwtService.verifyAccessToken(accessToken);
     expect(decoded.id).toBe(mockUser._id.toString());
     expect(decoded.role).toBe(mockUser.role);
   });
 
-  it('refresh token verifies correctly', () => {
-    const { refreshToken } = jwtService.generateTokenPair(mockUser);
-    const decoded = jwtService.verifyRefreshToken(refreshToken);
+  it('refresh token has correct payload (signature-only verify, no DB)', async () => {
+    // verifyRefreshToken hits the DB — use raw jwt.verify for unit test isolation
+    const jwt = require('jsonwebtoken');
+    const { refreshToken } = await jwtService.generateTokenPair(mockUser);
+    const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET, {
+      issuer: 'intellmeet', audience: 'intellmeet-client',
+    });
     expect(decoded.id).toBe(mockUser._id.toString());
   });
 

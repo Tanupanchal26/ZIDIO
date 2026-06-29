@@ -8,7 +8,7 @@ const app    = require('./app');
 const { connectDB, disconnectDB } = require('./config/db');
 const { connectRedis, getRedisClient } = require('./config/redis');
 const initSockets = require('./sockets');
-const logger = require('./utils/logger');
+const logger = require('./shared/utils/logger').default;
 
 const server = http.createServer(app);
 

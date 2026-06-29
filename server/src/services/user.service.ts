@@ -1,15 +1,33 @@
 // @ts-nocheck
-const User = require('../models/User');
+const User    = require('../models/User');
 const ApiError = require('../utils/ApiError');
-const logger = require('../common/logger').default;
+const logger   = require('../common/logger').default;
+const { getRedisClient } = require('../config/redis');
+
+const CACHE_TTL = 300; // 5 minutes
+
+const invalidateUserCache = async (userId) => {
+  const redis = getRedisClient();
+  if (redis) await redis.del(`user:${userId}`).catch(() => {});
+};
 
 /** Retrieve a user's profile by ID */
 async function getProfile(userId) {
+  const redis    = getRedisClient();
+  const cacheKey = `user:${userId}`;
+
+  if (redis) {
+    const cached = await redis.get(cacheKey).catch(() => null);
+    if (cached) return JSON.parse(cached);
+  }
+
   const user = await User.findById(userId).select('-password');
   if (!user) {
     logger.warn(`User not found: ${userId}`);
     throw ApiError.notFound('User not found');
   }
+
+  if (redis) await redis.setEx(cacheKey, CACHE_TTL, JSON.stringify(user)).catch(() => {});
   return user;
 }
 
@@ -31,6 +49,7 @@ async function updateProfile(userId, updateData) {
     logger.warn(`User not found for update: ${userId}`);
     throw ApiError.notFound('User not found');
   }
+  await invalidateUserCache(userId);
   return user;
 }
 
@@ -41,7 +60,7 @@ async function deleteAccount(userId) {
     logger.warn(`User not found for deletion: ${userId}`);
     throw ApiError.notFound('User not found');
   }
-  return;
+  await invalidateUserCache(userId);
 }
 
 /** Admin: retrieve all users */

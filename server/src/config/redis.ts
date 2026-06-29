@@ -9,9 +9,15 @@ const connectRedis = async () => {
   try {
     client = createClient({
       url: redis.url,
-      socket: { reconnectStrategy: false },
+      socket: {
+        reconnectStrategy: (retries) => {
+          if (retries > 10) return new Error('Redis max retries reached');
+          return Math.min(retries * 100, 3000);
+        },
+      },
     });
-    client.on('error', () => {});
+    client.on('error', (err) => logger.warn(`[Redis] error: ${err?.message || err}`));
+    client.on('reconnecting', () => logger.info('[Redis] reconnecting...'));
     await client.connect();
     logger.info('Redis connected');
   } catch (err) {

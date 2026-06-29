@@ -20,6 +20,19 @@ jobs:
   test:
     name: Lint, Test & Security Audit
     runs-on: ubuntu-latest
+
+    # Fix Issue 20: spin up MongoDB for integration tests
+    services:
+      mongo:
+        image: mongo:7.0
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --eval \"db.adminCommand('ping')\""
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
       - uses: actions/checkout@v4
 
@@ -52,7 +65,7 @@ jobs:
       - name: Backend — security audit
         working-directory: server
         run: npm audit --audit-level=high
-        continue-on-error: true   # report but don't fail build on low/medium
+        continue-on-error: true
 
       # ── Frontend ──
       - name: Frontend — install
@@ -89,15 +102,19 @@ jobs:
       backend_image:  ${{ steps.build_backend.outputs.image }}
       frontend_image: ${{ steps.build_frontend.outputs.image }}
 
+    permissions:
+      id-token: write   # required for OIDC
+      contents: read
+
     steps:
       - uses: actions/checkout@v4
 
-      - name: Configure AWS credentials
+      # Fix Issue 7: OIDC — no static long-lived AWS keys
+      - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region:            ${{ env.AWS_REGION }}
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region:     ${{ env.AWS_REGION }}
 
       - name: Login to Amazon ECR
         id: login-ecr
@@ -111,10 +128,8 @@ jobs:
         run: |
           docker build \
             --tag $REGISTRY/$ECR_BACKEND:$IMAGE_TAG \
-            --tag $REGISTRY/$ECR_BACKEND:latest \
             ./server
           docker push $REGISTRY/$ECR_BACKEND:$IMAGE_TAG
-          docker push $REGISTRY/$ECR_BACKEND:latest
           echo "image=$REGISTRY/$ECR_BACKEND:$IMAGE_TAG" >> $GITHUB_OUTPUT
 
       - name: Build & push frontend
@@ -127,10 +142,8 @@ jobs:
             --build-arg VITE_API_BASE_URL=https://api.intellmeet.com/api/v1 \
             --build-arg VITE_SOCKET_URL=https://api.intellmeet.com \
             --tag $REGISTRY/$ECR_FRONTEND:$IMAGE_TAG \
-            --tag $REGISTRY/$ECR_FRONTEND:latest \
             ./client
           docker push $REGISTRY/$ECR_FRONTEND:$IMAGE_TAG
-          docker push $REGISTRY/$ECR_FRONTEND:latest
           echo "image=$REGISTRY/$ECR_FRONTEND:$IMAGE_TAG" >> $GITHUB_OUTPUT
 
   # ── 3. Deploy to ECS ─────────────────────────────────────────────────────────
@@ -139,35 +152,41 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
 
+    permissions:
+      id-token: write
+      contents: read
+
     steps:
-      - name: Configure AWS credentials
+      - uses: actions/checkout@v4
+
+      # Fix Issue 7: OIDC — no static long-lived AWS keys
+      - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region:            ${{ env.AWS_REGION }}
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region:     ${{ env.AWS_REGION }}
 
-      - name: Deploy backend to ECS
-        run: |
-          aws ecs update-service \
-            --cluster $ECS_CLUSTER \
-            --service $ECS_SERVICE_API \
-            --force-new-deployment \
-            --no-cli-pager
+      # Fix Issue 8: fetch current task def, inject new image SHA, register + deploy
+      - name: Deploy backend — update task definition
+        id: deploy_backend
+        uses: aws-actions/amazon-ecs-deploy-task-def@v2
+        with:
+          task-definition-arn: ${{ secrets.ECS_TASK_DEF_BACKEND_ARN }}
+          service:             ${{ env.ECS_SERVICE_API }}
+          cluster:             ${{ env.ECS_CLUSTER }}
+          wait-for-service-stability: true
+          image: ${{ needs.build.outputs.backend_image }}
+          container-name: api
 
-      - name: Deploy frontend to ECS
-        run: |
-          aws ecs update-service \
-            --cluster $ECS_CLUSTER \
-            --service $ECS_SERVICE_WEB \
-            --force-new-deployment \
-            --no-cli-pager
-
-      - name: Wait for backend deployment stability
-        run: |
-          aws ecs wait services-stable \
-            --cluster $ECS_CLUSTER \
-            --services $ECS_SERVICE_API
+      - name: Deploy frontend — update task definition
+        uses: aws-actions/amazon-ecs-deploy-task-def@v2
+        with:
+          task-definition-arn: ${{ secrets.ECS_TASK_DEF_FRONTEND_ARN }}
+          service:             ${{ env.ECS_SERVICE_WEB }}
+          cluster:             ${{ env.ECS_CLUSTER }}
+          wait-for-service-stability: true
+          image: ${{ needs.build.outputs.frontend_image }}
+          container-name: web
 
       - name: Smoke test — health check
         run: |

@@ -1,11 +1,9 @@
-import { useState, useEffect, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  MessageSquare, Users, Brain, FileText, Zap,
-  PhoneOff, Mic, MicOff, Video, VideoOff,
-  Monitor, Circle, Hand, Smile, MoreHorizontal,
-  ChevronRight, Maximize2, Minimize2,
+  MessageSquare, Users, Brain, FileText,
+  ChevronRight,
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import VideoGrid from '../components/meeting/VideoGrid';
@@ -76,13 +74,31 @@ const AIPanel = ({ meetingId }: { meetingId: string }) => {
 };
 
 /* ── Notes sub-panel ── */
-const NotesPanel = () => {
+const NotesPanel = ({ meetingId }: { meetingId: string }) => {
   const [notes, setNotes] = useState('');
+  const [saved, setSaved] = useState(false);
+
+  const handleSave = useCallback(async () => {
+    try {
+      const { getSocket } = await import('../utils/socket');
+      getSocket().emit('notes:update', { meetingId, content: notes });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } catch {
+      // socket may not be ready
+    }
+  }, [meetingId, notes]);
+
   return (
     <div className="p-4 h-full flex flex-col gap-3 bg-[var(--color-surface-2)]/40">
       <div className="flex items-center justify-between">
         <p className="text-[10px] font-semibold text-[var(--color-text-muted)] uppercase tracking-[0.1em]">Meeting Notes</p>
-        <button className="text-[10px] text-[var(--color-primary)] hover:text-[var(--color-primary-hover)] transition-colors font-semibold">Save</button>
+        <button
+          onClick={handleSave}
+          className="text-[10px] text-[var(--color-primary)] hover:text-[var(--color-primary-hover)] transition-colors font-semibold"
+        >
+          {saved ? 'Saved ✓' : 'Save'}
+        </button>
       </div>
       <textarea
         value={notes}
@@ -101,7 +117,6 @@ const NotesPanel = () => {
 /* ── Main component ── */
 const MeetingRoom = () => {
   const { id }     = useParams<{ id: string }>();
-  const navigate   = useNavigate();
   const user = useAppSelector((s) => s.auth.user);
 
   const [activePanel, setActivePanel] = useState<Panel>('chat');
@@ -251,7 +266,7 @@ const MeetingRoom = () => {
                     {activePanel === 'chat'         && <ChatBox meetingId={id ?? ''} />}
                     {activePanel === 'participants' && <ParticipantList />}
                     {activePanel === 'ai'           && <AIPanel meetingId={id ?? ''} />}
-                    {activePanel === 'notes'        && <NotesPanel />}
+                    {activePanel === 'notes'        && <NotesPanel meetingId={id ?? ''} />}
                   </motion.div>
                 </AnimatePresence>
               </div>

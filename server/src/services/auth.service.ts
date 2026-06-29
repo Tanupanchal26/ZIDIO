@@ -1,4 +1,5 @@
 // @ts-nocheck
+const mongoose    = require('mongoose');
 const userRepo    = require('../repositories/user.repository');
 const teamRepo    = require('../repositories/team.repository');
 const channelRepo = require('../repositories/channel.repository');
@@ -6,7 +7,7 @@ const Tenant      = require('../models/Tenant');
 const jwtService  = require('./jwt.service');
 const emailService = require('./email.service');
 const ApiError    = require('../utils/ApiError');
-const logger      = require('../utils/logger');
+const logger      = require('../shared/utils/logger').default;
 const { USER_STATUS, AUTH } = require('../constants');
 
 // Generic "invalid credentials" message — never reveal whether email exists
@@ -20,43 +21,53 @@ const signup = async ({ name, email, password, role }) => {
   const slugify = (str) =>
     str.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 
-  const tenant = await Tenant.create({
-    name:   `${name}'s Workspace`,
-    slug:   `${slugify(name)}-${Date.now()}`,
-    plan:   'free',
-  });
+  const session = await mongoose.startSession();
+  session.startTransaction();
+  try {
+    const tenant = await Tenant.create([{
+      name:   `${name}'s Workspace`,
+      slug:   `${slugify(name)}-${Date.now()}`,
+      plan:   'free',
+    }], { session });
 
-  const user = await userRepo.create({ name, email, password, role, tenantId: tenant._id });
+    const user = await userRepo.create({ name, email, password, role, tenantId: tenant[0]._id }, { session });
 
-  const team = await teamRepo.create({
-    tenantId: tenant._id,
-    name:      'General',
-    slug:      'general',
-    createdBy: user._id,
-    members:   [{ user: user._id, role: 'owner' }],
-  });
+    const team = await teamRepo.create([{
+      tenantId: tenant[0]._id,
+      name:      'General',
+      slug:      'general',
+      createdBy: user._id,
+      members:   [{ user: user._id, role: 'owner' }],
+    }], { session });
 
-  await channelRepo.create({
-    tenantId: tenant._id,
-    team:      team._id,
-    name:      'general',
-    slug:      'general',
-    type:      'public',
-    isDefault: true,
-    createdBy: user._id,
-    members:   [user._id],
-  });
+    await channelRepo.create([{
+      tenantId: tenant[0]._id,
+      team:      team[0]._id,
+      name:      'general',
+      slug:      'general',
+      type:      'public',
+      isDefault: true,
+      createdBy: user._id,
+      members:   [user._id],
+    }], { session });
 
-  const rawToken = user.createToken('emailVerify');
-  await user.save({ validateBeforeSave: false });
+    const rawToken = user.createToken('emailVerify');
+    await user.save({ validateBeforeSave: false, session });
 
-  emailService.sendVerificationEmail(user, rawToken).catch(() => {});
+    await session.commitTransaction();
+    emailService.sendVerificationEmail(user, rawToken).catch(() => {});
 
-  const { accessToken, refreshToken } = jwtService.generateTokenPair(user);
-  const hashedRefresh = jwtService.hashToken(refreshToken);
-  await userRepo.addRefreshToken(user._id, hashedRefresh);
+    const { accessToken, refreshToken } = await jwtService.generateTokenPair(user);
+    const hashedRefresh = jwtService.hashToken(refreshToken);
+    await userRepo.addRefreshToken(user._id, hashedRefresh);
 
-  return { user, accessToken, refreshToken };
+    return { user, accessToken, refreshToken };
+  } catch (err) {
+    await session.abortTransaction();
+    throw err;
+  } finally {
+    session.endSession();
+  }
 };
 
 // ── 2. Login ──────────────────────────────────────────────────────────────────
@@ -101,7 +112,7 @@ const login = async ({ email, password }) => {
   // Successful login — reset counter
   await user.resetLoginAttempts();
 
-  const { accessToken, refreshToken } = jwtService.generateTokenPair(user);
+  const { accessToken, refreshToken } = await jwtService.generateTokenPair(user);
   const hashedRefresh = jwtService.hashToken(refreshToken);
   await userRepo.addRefreshToken(user._id, hashedRefresh);
 
@@ -128,7 +139,7 @@ const refreshTokens = async (rawRefreshToken) => {
   // Verify signature first (throws if expired/invalid)
   let decoded;
   try {
-    decoded = jwtService.verifyRefreshToken(rawRefreshToken);
+    decoded = await jwtService.verifyRefreshToken(rawRefreshToken);
   } catch {
     throw ApiError.unauthorized('Invalid or expired refresh token');
   }
@@ -145,7 +156,7 @@ const refreshTokens = async (rawRefreshToken) => {
 
   // Rotation: remove old token, issue new pair
   await userRepo.removeRefreshToken(user._id, hashedIncoming);
-  const { accessToken, refreshToken: newRefresh } = jwtService.generateTokenPair(user);
+  const { accessToken, refreshToken: newRefresh } = await jwtService.generateTokenPair(user);
   const hashedNew = jwtService.hashToken(newRefresh);
   await userRepo.addRefreshToken(user._id, hashedNew);
 

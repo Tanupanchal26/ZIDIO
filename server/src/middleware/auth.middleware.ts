@@ -5,6 +5,7 @@ const { verifyAccessToken } = require('../services/jwt.service');
 const ApiError   = require('../utils/ApiError');
 const asyncHandler = require('../utils/asyncHandler');
 const { ROLES, ROLE_HIERARCHY, USER_STATUS } = require('../constants');
+const User = require('../models/User');
 
 // ── authenticate() ────────────────────────────────────────────────────────────
 /**

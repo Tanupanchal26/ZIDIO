@@ -1,7 +1,7 @@
 // @ts-nocheck
 const mongoose = require('mongoose');
 const ApiError = require('../utils/ApiError');
-const logger = require('../utils/logger');
+const logger = require('../shared/utils/logger').default;
 const { HTTP, ENV } = require('../constants');
 
 /**

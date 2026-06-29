@@ -1,7 +1,7 @@
 // @ts-nocheck
 const asyncHandler = require('../../utils/asyncHandler');
 const ApiResponse = require('../../utils/ApiResponse');
-const logger = require('../../common/logger').default;
+const logger = require('../../common/logger').default ?? require('../../utils/logger');
 const userService = require('../../services/user.service');
 
 // Get current user's profile
