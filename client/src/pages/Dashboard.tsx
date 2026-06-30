@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import {
   Video, CheckSquare, Users, Calendar, BarChart2,
-  Sparkles, Bell, TrendingUp, Clock, ArrowRight, Zap, Loader2
+  Sparkles, Bell, TrendingUp, Clock, ArrowRight, Zap, Loader2, Brain
 } from 'lucide-react';
 import { useAppSelector } from '../hooks/useAppDispatch';
 import { ROUTES, MEETING_ROUTE } from '../constants';
