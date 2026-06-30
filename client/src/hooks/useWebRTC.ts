@@ -217,44 +217,44 @@ export const useWebRTC = ({ roomId, userId }: WebRTCConfig) => {
     };
   }, [socket, roomId, createPeerConnection, closePeerConnection]);
 
-  // Handle Video Toggle (Hardware level)
+  // Handle Video Toggle
   useEffect(() => {
-    if (isVideoOff) {
-      // Turn off hardware camera completely
-      if (localStreamRef.current) {
-        localStreamRef.current.getVideoTracks().forEach(t => {
-          t.stop();
-          localStreamRef.current?.removeTrack(t);
-        });
-        setLocalStream(new MediaStream(localStreamRef.current.getTracks()));
+    const toggleCamera = async () => {
+      if (isVideoOff) {
+        // Soft-disable: just disable the track, keep it alive so re-enable is instant
+        localStreamRef.current?.getVideoTracks().forEach(t => { t.enabled = false; });
+        setLocalStream(prev => prev ? new MediaStream(prev.getTracks()) : null);
+      } else {
+        const existingTrack = localStreamRef.current?.getVideoTracks()[0];
+        if (existingTrack) {
+          // Re-enable existing track
+          existingTrack.enabled = true;
+          setLocalStream(prev => prev ? new MediaStream(prev.getTracks()) : null);
+        } else {
+          // Track was stopped — request a new one
+          try {
+            const vStream = await navigator.mediaDevices.getUserMedia({ video: true });
+            if (!localStreamRef.current) return;
+            const vTrack = vStream.getVideoTracks()[0];
+            localStreamRef.current.addTrack(vTrack);
+            setLocalStream(new MediaStream(localStreamRef.current.getTracks()));
+            // Replace track in all peer connections
+            peersRef.current.forEach(pc => {
+              const sender = pc.getSenders().find(s => s.track?.kind === 'video');
+              if (sender) sender.replaceTrack(vTrack);
+              else pc.addTrack(vTrack, localStreamRef.current!);
+            });
+          } catch (err) {
+            console.error('Failed to turn on camera:', err);
+          }
+        }
       }
-    } else {
-      // Turn on hardware camera
-      const hasVideo = localStreamRef.current?.getVideoTracks().length;
-      if (!hasVideo) {
-        navigator.mediaDevices.getUserMedia({ video: true }).then(vStream => {
-          if (!localStreamRef.current) return;
-          const vTrack = vStream.getVideoTracks()[0];
-          localStreamRef.current.addTrack(vTrack);
-          setLocalStream(new MediaStream(localStreamRef.current.getTracks()));
-
-          // Replace track in all peer connections
-          peersRef.current.forEach(pc => {
-            const sender = pc.getSenders().find(s => s.track?.kind === 'video');
-            if (sender) {
-              sender.replaceTrack(vTrack);
-            } else {
-              pc.addTrack(vTrack, localStreamRef.current!);
-            }
-          });
-        }).catch(err => console.error("Failed to turn on camera:", err));
+      // Broadcast media state
+      if (socket?.connected && roomId) {
+        socket.emit('meeting:media-state', { roomId, isMuted, isVideoOff, isScreenSharing: false });
       }
-    }
-
-    // Broadcast media state
-    if (socket?.connected && roomId) {
-      socket.emit('meeting:media-state', { roomId, isMuted, isVideoOff, isScreenSharing: false });
-    }
+    };
+    toggleCamera();
   }, [isVideoOff, socket, roomId, isMuted]);
 
   // Handle Audio Toggle

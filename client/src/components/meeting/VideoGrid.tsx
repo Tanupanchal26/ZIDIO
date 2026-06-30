@@ -13,7 +13,7 @@ const VideoTile = ({ name, isMuted, isVideoOff, isScreenSharing, isActive, isLoc
     if (videoRef.current && stream) {
       videoRef.current.srcObject = stream;
     }
-  }, [stream]);
+  }, [stream, isVideoOff]);
 
   return (
     <article
