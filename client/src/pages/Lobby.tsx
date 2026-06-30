@@ -83,9 +83,11 @@ const Lobby = () => {
     if (createMutation.isPending) return;
     createMutation.mutate({ title: title.trim() || 'Quick Meeting', tenantId: user?.tenantId });
   };
+
+  const handleJoin = async () => {
     const code = joinId.trim();
     if (!code) return;
-    
+
     try {
       const response: any = await meetingService.join(code);
       const meeting = response?.data || response;
@@ -94,11 +96,9 @@ const Lobby = () => {
         toast.success('Joined meeting!');
         navigate(MEETING_ROUTE(meetingId));
       } else {
-        // If no meeting found with exact match, try navigating directly (could be a roomId)
         navigate(MEETING_ROUTE(code));
       }
     } catch (err: any) {
-      // If validation fails, still try navigating directly as it could be a direct room ID
       toast.error(err?.message || 'Meeting not found. Check the code and try again.');
     }
   };
@@ -118,7 +118,7 @@ const Lobby = () => {
       {/* Action cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Create */}
-        <Card hover className="flex flex-col gap-4 cursor-pointer" onClick={() => { setShowCreate(true); setCreatedMeeting(null); }}>
+        <Card hover className="flex flex-col gap-4 cursor-pointer" onClick={() => setShowCreate(true)}>
           <div className="w-12 h-12 rounded-xl bg-[var(--color-primary)]/15 flex items-center justify-center">
             <Plus size={22} className="text-[var(--color-primary)]" />
           </div>

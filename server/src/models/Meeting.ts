@@ -9,7 +9,7 @@ const inviteeSchema = new mongoose.Schema({
 }, { _id: false });
 
 const meetingSchema = new mongoose.Schema({
-  tenantId:     { type: mongoose.Schema.Types.ObjectId, ref: 'Tenant', required: true, index: true },
+  tenantId:     { type: mongoose.Schema.Types.ObjectId, ref: 'Tenant', required: false, default: null, index: true },
   team:         { type: mongoose.Schema.Types.ObjectId, ref: 'Team', default: null },
   title:        { type: String, required: true, trim: true, minlength: 3, maxlength: 120 },
   description:  { type: String, default: '', maxlength: 1000 },
