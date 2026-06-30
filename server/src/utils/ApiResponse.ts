@@ -58,3 +58,6 @@ export class ApiResponse<T = unknown> {
 }
 
 export default ApiResponse;
+module.exports = ApiResponse;
+module.exports.default = ApiResponse;
+module.exports.ApiResponse = ApiResponse;

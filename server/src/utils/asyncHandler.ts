@@ -10,3 +10,5 @@ const asyncHandler = (fn: AsyncRouteHandler): RequestHandler =>
   (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 
 export default asyncHandler;
+module.exports = asyncHandler;
+module.exports.default = asyncHandler;
