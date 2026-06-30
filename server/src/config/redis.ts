@@ -9,14 +9,15 @@ export const connectRedis = async (): Promise<RedisClientType | null> => {
     client = createClient({
       url: config.redis.url,
       socket: {
+        connectTimeout: 3000,
         reconnectStrategy: (retries: number) => {
-          if (retries > 10) return new Error('Redis max retries reached');
-          return Math.min(retries * 100, 3000);
+          if (retries > 3) return new Error('Redis max retries reached');
+          return Math.min(retries * 200, 1000);
         },
       },
     }) as RedisClientType;
 
-    client.on('error',       (err: Error) => logger.warn(`[Redis] error: ${err.message}`));
+    client.on('error',       (err: Error) => { if (err?.message) logger.warn(`[Redis] error: ${err.message}`); });
     client.on('reconnecting', ()          => logger.info('[Redis] reconnecting...'));
 
     await client.connect();

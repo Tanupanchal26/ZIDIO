@@ -9,6 +9,7 @@ const MONGO_OPTIONS: ConnectOptions = {
   minPoolSize:              2,
   socketTimeoutMS:          45_000,
   family:                   4,
+  autoIndex:                config.isProd ? false : true,
 };
 
 const connectWithRetry = async (retries = 5, baseDelayMs = 3_000): Promise<void> => {
@@ -32,6 +33,8 @@ export const connectDB = async (): Promise<void> => {
 
   if (!config.isProd) {
     mongoose.set('debug', (collection: string, method: string) => {
+      // Skip noisy index sync logs
+      if (method === 'createIndex') return;
       logger.debug(`[DB] ${collection}.${method}`);
     });
   }

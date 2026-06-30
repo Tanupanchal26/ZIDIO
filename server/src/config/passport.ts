@@ -88,3 +88,5 @@ passport.deserializeUser(async (id: string, done: Function) => {
 });
 
 export default passport;
+module.exports = passport;
+module.exports.default = passport;
