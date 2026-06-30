@@ -10,8 +10,12 @@ const VideoTile = ({ name, isMuted, isVideoOff, isScreenSharing, isActive, isLoc
   const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
-    if (videoRef.current && stream) {
+    if (!videoRef.current) return;
+    if (stream && !isVideoOff) {
       videoRef.current.srcObject = stream;
+    } else {
+      // Clear the video element so frozen frame doesn't linger
+      videoRef.current.srcObject = null;
     }
   }, [stream, isVideoOff]);
 

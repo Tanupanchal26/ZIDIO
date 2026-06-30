@@ -217,45 +217,51 @@ export const useWebRTC = ({ roomId, userId }: WebRTCConfig) => {
     };
   }, [socket, roomId, createPeerConnection, closePeerConnection]);
 
-  // Handle Video Toggle
+  // Handle Video Toggle — physically stop/start the device camera
   useEffect(() => {
     const toggleCamera = async () => {
       if (isVideoOff) {
-        // Soft-disable: just disable the track, keep it alive so re-enable is instant
-        localStreamRef.current?.getVideoTracks().forEach(t => { t.enabled = false; });
-        setLocalStream(prev => prev ? new MediaStream(prev.getTracks()) : null);
+        // Stop every video track → turns off the camera indicator light
+        localStreamRef.current?.getVideoTracks().forEach(t => {
+          t.stop();
+          localStreamRef.current?.removeTrack(t);
+        });
+        // Rebuild localStream with only audio so VideoTile shows avatar
+        const audioTracks = localStreamRef.current?.getAudioTracks() ?? [];
+        setLocalStream(audioTracks.length ? new MediaStream(audioTracks) : null);
       } else {
-        const existingTrack = localStreamRef.current?.getVideoTracks()[0];
-        if (existingTrack) {
-          // Re-enable existing track
-          existingTrack.enabled = true;
-          setLocalStream(prev => prev ? new MediaStream(prev.getTracks()) : null);
-        } else {
-          // Track was stopped — request a new one
-          try {
-            const vStream = await navigator.mediaDevices.getUserMedia({ video: true });
-            if (!localStreamRef.current) return;
-            const vTrack = vStream.getVideoTracks()[0];
-            localStreamRef.current.addTrack(vTrack);
-            setLocalStream(new MediaStream(localStreamRef.current.getTracks()));
-            // Replace track in all peer connections
-            peersRef.current.forEach(pc => {
-              const sender = pc.getSenders().find(s => s.track?.kind === 'video');
-              if (sender) sender.replaceTrack(vTrack);
-              else pc.addTrack(vTrack, localStreamRef.current!);
-            });
-          } catch (err) {
-            console.error('Failed to turn on camera:', err);
+        // Re-acquire the physical camera
+        try {
+          const vStream = await navigator.mediaDevices.getUserMedia({ video: true });
+          const vTrack = vStream.getVideoTracks()[0];
+          if (!vTrack) return;
+
+          // Ensure localStreamRef exists
+          if (!localStreamRef.current) {
+            localStreamRef.current = new MediaStream();
           }
+          localStreamRef.current.addTrack(vTrack);
+
+          // Replace track in every peer connection
+          peersRef.current.forEach(pc => {
+            const sender = pc.getSenders().find(s => s.track?.kind === 'video');
+            if (sender) sender.replaceTrack(vTrack);
+            else pc.addTrack(vTrack, localStreamRef.current!);
+          });
+
+          setLocalStream(new MediaStream(localStreamRef.current.getTracks()));
+        } catch (err) {
+          console.error('Failed to re-acquire camera:', err);
         }
       }
-      // Broadcast media state
+      // Broadcast media state to other participants
       if (socket?.connected && roomId) {
         socket.emit('meeting:media-state', { roomId, isMuted, isVideoOff, isScreenSharing: false });
       }
     };
     toggleCamera();
-  }, [isVideoOff, socket, roomId, isMuted]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isVideoOff]);
 
   // Handle Audio Toggle
   useEffect(() => {
