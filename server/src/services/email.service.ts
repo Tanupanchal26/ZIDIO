@@ -1,7 +1,8 @@
 // @ts-nocheck
 const nodemailer = require('nodemailer');
-const { smtp, clientUrl } = require('../config/env');
-const logger = require('../utils/logger');
+const config = require('../config/env');
+const { smtp, clientUrl } = config;
+const logger = require('../shared/utils/logger');
 
 // ── Transporter ───────────────────────────────────────────────────────────────
 const transporter = nodemailer.createTransport({
