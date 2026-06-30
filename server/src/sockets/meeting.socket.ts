@@ -3,7 +3,7 @@ const MeetingNote = require('../models/MeetingNote');
 const Meeting     = require('../models/Meeting');
 const AIResult    = require('../models/AIResult');
 const aiService   = require('../services/ai.service');
-const logger      = require('../utils/logger');
+const logger      = require('../shared/utils/logger');
 
 module.exports = (io, socket) => {
   // ── Join / Leave ───────────────────────────────────────────────────────────
