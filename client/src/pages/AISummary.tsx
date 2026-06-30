@@ -77,7 +77,14 @@ const AISummary = () => {
     if (!selectedId) return;
     store.setGenerating(true);
     try {
-      const sRes: any = await aiService.generateSummary(selectedId);
+      // Fetch existing transcript first; fall back to empty string
+      const tRes: any = await aiService.getTranscript(selectedId);
+      const transcript: string = tRes?.data?.transcript ?? tRes?.transcript ?? '';
+      if (!transcript.trim()) {
+        toast.error('No transcript found for this meeting. Please record or upload a transcript first.');
+        return;
+      }
+      const sRes: any = await aiService.generateSummary(selectedId, transcript);
       store.setSummary(sRes?.data?.summary ?? sRes?.summary ?? '');
       const aRes: any = await aiService.getActionItems(selectedId);
       store.setActionItems(aRes?.data?.actionItems ?? aRes?.actionItems ?? []);

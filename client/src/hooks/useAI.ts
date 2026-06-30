@@ -58,7 +58,13 @@ export const useAI = (meetingId: string) => {
   const generateSummary = useCallback(async () => {
     store.setGenerating(true);
     try {
-      const { data } = await aiService.generateSummary(meetingId);
+      const { data: tData } = await aiService.getTranscript(meetingId);
+      const transcript = tData?.transcript ?? '';
+      if (!transcript.trim()) {
+        toast.error('No transcript found. Please record or upload a transcript first.');
+        return;
+      }
+      const { data } = await aiService.generateSummary(meetingId, transcript);
       store.setSummary(data.summary);
       const { data: ai } = await aiService.getActionItems(meetingId);
       store.setActionItems(ai.actionItems);

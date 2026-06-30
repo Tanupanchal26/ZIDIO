@@ -34,8 +34,8 @@ export const aiService = {
   getResult:       (meetingId: string) =>
     api.get<AIResult>(`/ai/${meetingId}`),
 
-  generateSummary: (meetingId: string) =>
-    api.post<{ summary: string }>(`/ai/${meetingId}/summary`),
+  generateSummary: (meetingId: string, transcript: string) =>
+    api.post<{ summary: string }>(`/ai/${meetingId}/summary`, { transcript }),
 
   getTranscript:   (meetingId: string) =>
     api.get<{ transcript: string }>(`/ai/${meetingId}/transcript`),
