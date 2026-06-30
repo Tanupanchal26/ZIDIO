@@ -8,7 +8,7 @@ const { chat, generateTasks } = require('../ai/assistant');
 const { semanticSearch }     = require('../ai/semanticSearch');
 const { getRedisClient }     = require('../config/redis');
 const { CACHE_TTL }          = require('../constants');
-const logger = require('../utils/logger');
+const logger = require('../shared/utils/logger');
 
 // ── Cache helpers ─────────────────────────────────────────────────────────────
 const cacheGet = async (key) => {
