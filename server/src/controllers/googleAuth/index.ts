@@ -5,6 +5,9 @@ const { AUTH } = require('../../constants');
 
 exports.googleCallback = async (req, res) => {
   try {
+    if (!req.user) {
+      return res.redirect(`${clientUrl}/login?error=${encodeURIComponent('Google sign-in failed — no user session.')}`);
+    }
     const { user, accessToken, refreshToken } = await googleAuthService.googleLogin(req.user);
 
     // HTTP-only cookie for refresh token

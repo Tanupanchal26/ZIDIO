@@ -26,6 +26,7 @@ const mediaCtrl       = require('../../controllers/media') as any;
 
 // Validators
 import * as AV from '../../validators/auth.validator';
+import * as UV from '../../validators/user.validator';
 import * as MV from '../../validators/meeting.validator';
 import * as TV from '../../validators/team.validator';
 import * as CV from '../../validators/channel.validator';
@@ -57,10 +58,11 @@ router.post('/auth/change-password', authenticate, validate(AV.changePassword), 
 router.post('/auth/unlock/:id',      authenticate, authorize('admin'),                authCtrl.unlockAccount);
 
 // ── Users ─────────────────────────────────────────────────────────────────────
-router.get('/users/me',   protect,                                  userCtrl.getProfile);
-router.put('/users/me',   protect,                                  userCtrl.updateProfile);
-router.delete('/users/me',protect,                                  userCtrl.deleteAccount);
-router.get('/users',      protect, authorize('admin', 'super_admin'), userCtrl.getAllUsers);
+router.get('/users/me',      protect,                                    userCtrl.getProfile);
+router.put('/users/me',      protect, validate(UV.updateProfile),         userCtrl.updateProfile);
+router.delete('/users/me',   protect,                                    userCtrl.deleteAccount);
+router.get('/users',         protect, authorize('admin', 'super_admin'),  userCtrl.getAllUsers);
+router.post('/users/avatar', protect, upload.single('avatar'),            userCtrl.uploadAvatar);
 
 // ── Meetings ──────────────────────────────────────────────────────────────────
 router.use('/meetings', protect, scopeTenant());
@@ -148,14 +150,14 @@ router.get('/tenants/me',          authenticate, async (req, res, next) => {
     res.json(t);
   } catch (e) { next(e); }
 });
-router.patch('/tenants/me/settings', authorize('tenant_admin'), async (req, res, next) => {
+router.patch('/tenants/me/settings', authorize(ROLES.ADMIN, ROLES.SUPER_ADMIN), async (req, res, next) => {
   try {
     res.json(await Tenant.findByIdAndUpdate((req as any).tenantId, { $set: { settings: req.body } }, { new: true, runValidators: true }));
   } catch (e) { next(e); }
 });
 
 // ── Analytics ─────────────────────────────────────────────────────────────────
-router.use('/analytics', authenticate, scopeTenant('tenantId'));
+router.use('/analytics', protect, scopeTenant());
 router.get('/analytics/dashboard',             analyticsCtrl.getDashboard);
 router.get('/analytics', authorize(ROLES.ADMIN), analyticsCtrl.getAnalyticsData);
 

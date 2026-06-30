@@ -60,10 +60,14 @@ resource "aws_ecs_cluster" "main" {
 
 # ── ALB ─────────────────────────────────────────────────────────
 resource "aws_lb" "main" {
-  name               = "intellmeet-alb"
-  load_balancer_type = "application"
-  subnets            = module.vpc.public_subnets
-  security_groups    = [aws_security_group.alb.id]
+  name                       = "intellmeet-alb"
+  load_balancer_type         = "application"
+  subnets                    = module.vpc.public_subnets
+  security_groups            = [aws_security_group.alb.id]
+
+  # CWE-703 fix: drop requests containing invalid/malformed HTTP headers
+  # Prevents HTTP request smuggling, header injection, and cache poisoning attacks
+  drop_invalid_header_fields = true
 }
 
 resource "aws_security_group" "alb" {

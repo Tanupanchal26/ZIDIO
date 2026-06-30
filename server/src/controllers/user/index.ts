@@ -1,8 +1,10 @@
 // @ts-nocheck
 const asyncHandler = require('../../utils/asyncHandler');
-const ApiResponse = require('../../utils/ApiResponse');
-const logger = require('../../common/logger').default ?? require('../../utils/logger');
-const userService = require('../../services/user.service');
+const ApiResponse  = require('../../utils/ApiResponse');
+const ApiError     = require('../../utils/ApiError');
+const logger       = require('../../shared/utils/logger').default;
+const userService  = require('../../services/user.service');
+const cloudinary   = require('../../config/cloudinary');
 
 // Get current user's profile
 exports.getProfile = asyncHandler(async (req, res) => {
@@ -13,7 +15,32 @@ exports.getProfile = asyncHandler(async (req, res) => {
 // Update current user's profile
 exports.updateProfile = asyncHandler(async (req, res) => {
   const user = await userService.updateProfile(req.user.id, req.body);
-  ApiResponse.ok(res, user, 'Profile updated');
+  ApiResponse.ok(res, { user }, 'Profile updated');
+});
+
+// Upload avatar — POST /users/avatar
+exports.uploadAvatar = asyncHandler(async (req, res) => {
+  if (!req.file) throw ApiError.badRequest('No file uploaded');
+  if (!req.file.mimetype.startsWith('image/')) throw ApiError.badRequest('File must be an image');
+  if (req.file.size > 8 * 1024 * 1024) throw ApiError.badRequest('Image must be under 8 MB');
+
+  const result = await new Promise((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(
+      {
+        folder:         'intellmeet/avatars',
+        public_id:      `avatar_${req.user.id}`,
+        overwrite:      true,
+        transformation: [{ width: 256, height: 256, crop: 'fill', gravity: 'face' }],
+        resource_type:  'image',
+      },
+      (err, res) => (err ? reject(err) : resolve(res))
+    );
+    stream.end(req.file.buffer);
+  });
+
+  const avatarUrl = result.secure_url;
+  const user = await userService.updateAvatar(req.user.id, avatarUrl);
+  ApiResponse.ok(res, { user, avatarUrl }, 'Avatar updated');
 });
 
 // Delete current user's account

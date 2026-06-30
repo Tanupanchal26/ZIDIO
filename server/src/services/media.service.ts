@@ -2,7 +2,7 @@
 const cloudinary = require('../config/cloudinary');
 const Media = require('../models/Media');
 const ApiError = require('../utils/ApiError');
-const logger = require('../utils/logger');
+const logger = require('../shared/utils/logger').default;
 
 // Allowed MIME types
 const ALLOWED_TYPES = {

@@ -50,12 +50,32 @@ export const getUserForAuth = async (userId: string): Promise<UserDoc> => {
   return user as UserDoc;
 };
 
+const ALLOWED_UPDATE_FIELDS: ReadonlyArray<string> = ['name'];
+
 export const updateProfile = async (userId: string, updateData: Record<string, unknown>): Promise<UserDoc> => {
-  const user = await User.findByIdAndUpdate(userId, updateData, { new: true }).select('-password');
+  // Whitelist — prevent mass-assignment of sensitive fields (role, isVerified, googleId, etc.)
+  const safe = Object.fromEntries(
+    Object.entries(updateData).filter(([k]) => ALLOWED_UPDATE_FIELDS.includes(k))
+  );
+
+  if (Object.keys(safe).length === 0) throw ApiError.badRequest('No valid fields to update');
+
+  const user = await User.findByIdAndUpdate(userId, safe, { new: true, runValidators: true }).select('-password');
   if (!user) {
     logger.warn(`User not found for update: ${sanitizeLog(userId)}`);
     throw ApiError.notFound('User not found');
   }
+  await invalidateUserCache(userId);
+  return user as UserDoc;
+};
+
+export const updateAvatar = async (userId: string, avatarUrl: string): Promise<UserDoc> => {
+  const user = await User.findByIdAndUpdate(
+    userId,
+    { avatar: avatarUrl },
+    { new: true, runValidators: true }
+  ).select('-password');
+  if (!user) throw ApiError.notFound('User not found');
   await invalidateUserCache(userId);
   return user as UserDoc;
 };
@@ -76,6 +96,7 @@ export default {
   getProfile,
   getUserForAuth,
   updateProfile,
+  updateAvatar,
   deleteAccount,
   getAllUsers,
 };

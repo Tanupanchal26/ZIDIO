@@ -1,10 +1,11 @@
 // @ts-nocheck
-const Meeting = require('../models/Meeting');
-const Task = require('../models/Task');
-const User = require('../models/User');
-const AIResult = require('../models/AIResult');
-const Recording = require('../models/Recording');
-const mongoose = require('mongoose');
+const Meeting      = require('../models/Meeting');
+const Task         = require('../models/Task');
+const User         = require('../models/User');
+const AIResult     = require('../models/AIResult');
+const Recording    = require('../models/Recording');
+const Notification = require('../models/Notification');
+const mongoose     = require('mongoose');
 
 exports.getDashboardMetrics = async (tenantId, userId) => {
   const tid = new mongoose.Types.ObjectId(tenantId);
@@ -67,6 +68,20 @@ exports.getDashboardMetrics = async (tenantId, userId) => {
   // Active users in tenant
   const activeUsers = await User.countDocuments({ tenantId, status: 'active' });
 
+  // Recent activity — last 5 notifications for the user
+  const rawActivity = await Notification.find({ recipient: uid })
+    .sort({ createdAt: -1 })
+    .limit(5)
+    .lean();
+
+  const recentActivity = rawActivity.map(n => ({
+    id:        n._id,
+    type:      n.type,
+    text:      n.body || n.title,
+    time:      n.createdAt,
+    isRead:    n.isRead,
+  }));
+
   return {
     metrics: {
       totalMeetings: await Meeting.countDocuments({ tenantId, participants: userId }),
@@ -81,6 +96,7 @@ exports.getDashboardMetrics = async (tenantId, userId) => {
     recentMeetings,
     upcomingMeetings,
     taskData,
+    recentActivity,
   };
 };
 

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppSelector, useAppDispatch } from '../hooks/useAppDispatch';
+import { setCredentials } from '../store/auth/auth.slice';
 import Card from '../components/common/Card';
 import Button from '../components/common/Button';
 import Badge from '../components/common/Badge';
@@ -8,6 +9,7 @@ import { Save, Video, Brain, CheckSquare, LogOut } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { clearAuth } from '../store/auth/auth.slice';
 import { authService } from '../api/auth.api';
+import api from '../api/axios';
 import { ROUTES, STORAGE_KEYS } from '../constants';
 
 const Profile = () => {
@@ -15,6 +17,7 @@ const Profile = () => {
   const dispatch = useAppDispatch();
   const user = useAppSelector((s) => s.auth.user);
   const [name, setName] = useState(user?.name || '');
+  const [saving, setSaving] = useState(false);
 
   const STATS = [
     { label: 'Meetings', value: '28', icon: Video, color: 'text-[var(--color-primary)]', bg: 'bg-[var(--color-primary)]/10' },
@@ -86,7 +89,26 @@ const Profile = () => {
             <label className="text-xs font-medium text-[var(--color-text-muted)] block mb-1.5">Email</label>
             <input value={user?.email || ''} disabled className="input-dark opacity-60" />
           </div>
-          <Button onClick={() => toast.success('Profile updated!')} className="gap-2 w-fit"><Save size={14} />Save Changes</Button>
+          <Button
+            loading={saving}
+            onClick={async () => {
+              if (!name.trim()) { toast.error('Name cannot be empty'); return; }
+              setSaving(true);
+              try {
+                const res = (await api.put('/users/me', { name: name.trim() })) as any;
+                const updated = res?.data?.user ?? res?.user ?? res?.data ?? res;
+                dispatch(setCredentials({ user: { ...user, ...updated }, accessToken: undefined as any }));
+                toast.success('Profile updated!');
+              } catch (err: any) {
+                toast.error(err?.message ?? 'Failed to update profile');
+              } finally {
+                setSaving(false);
+              }
+            }}
+            className="gap-2 w-fit"
+          >
+            <Save size={14} />Save Changes
+          </Button>
         </div>
       </Card>
     </div>

@@ -9,9 +9,11 @@ import Card from '../components/common/Card';
 import Button from '../components/common/Button';
 import Badge from '../components/common/Badge';
 import { useAppSelector, useAppDispatch } from '../hooks/useAppDispatch';
+import { setCredentials } from '../store/auth/auth.slice';
 import { setTheme, setDensity } from '../store/ui/ui.slice';
-import { ROUTES, STORAGE_KEYS } from '../constants';
+import { ROUTES } from '../constants';
 import { useAuth } from '../hooks/useAuth';
+import api from '../api/axios';
 import toast from 'react-hot-toast';
 import { clsx } from 'clsx';
 
@@ -61,7 +63,6 @@ const AvatarUpload = ({ name }: { name: string }) => {
   const [progress, setProgress] = useState(0);
   const [uploading, setUploading] = useState(false);
   const [cropSrc,  setCropSrc]  = useState<string | null>(null);
-  const imgRef = useRef<HTMLImageElement>(null);
 
   /** Compress + crop to square via canvas */
   const processImage = (file: File): Promise<Blob> =>
@@ -91,29 +92,26 @@ const AvatarUpload = ({ name }: { name: string }) => {
     setPreview(dataUrl);
     setCropSrc(null);
 
-    // Simulate upload with XHR progress
     setUploading(true);
     setProgress(0);
     const formData = new FormData();
     formData.append('avatar', blob, 'avatar.webp');
 
-    const xhr = new XMLHttpRequest();
-    xhr.upload.onprogress = (e) => {
-      if (e.lengthComputable) setProgress(Math.round((e.loaded / e.total) * 100));
-    };
-    xhr.onload = () => {
-      setUploading(false);
+    try {
+      await (api as any).post('/users/avatar', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        onUploadProgress: (e: ProgressEvent) => {
+          if (e.total) setProgress(Math.round((e.loaded / e.total) * 100));
+        },
+      });
       setProgress(100);
       toast.success('Avatar updated!');
-    };
-    xhr.onerror = () => {
-      setUploading(false);
+    } catch (err: any) {
       setPreview(null);
-      toast.error('Upload failed — please try again');
-    };
-    xhr.open('POST', '/api/users/avatar');
-    xhr.setRequestHeader('Authorization', `Bearer ${localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN) ?? ''}`);
-    xhr.send(formData);
+      toast.error(err?.message ?? 'Upload failed — please try again');
+    } finally {
+      setUploading(false);
+    }
   };
 
   return (
@@ -230,6 +228,10 @@ const Settings = () => {
   const density = useAppSelector((s) => s.ui.density);
   const [tab,  setTab]  = useState<Tab>('profile');
   const [name, setName] = useState(user?.name ?? '');
+  const [savingProfile, setSavingProfile] = useState(false);
+
+  const [pwForm, setPwForm] = useState({ current: '', next: '', confirm: '' });
+  const [savingPw, setSavingPw] = useState(false);
 
   const [notifs, setNotifs] = useState({
     email: true, push: true, digest: false, mentions: true,
@@ -247,7 +249,36 @@ const Settings = () => {
   const toggleAI = (k: keyof typeof ai) =>
     setAI(a => ({ ...a, [k]: !a[k] }));
 
-  const save = () => toast.success('Settings saved!');
+  const save = async () => {
+    if (!name.trim()) { toast.error('Name cannot be empty'); return; }
+    setSavingProfile(true);
+    try {
+      const res = (await api.put('/users/me', { name: name.trim() })) as any;
+      const updated = res?.data?.user ?? res?.user ?? res?.data ?? res;
+      dispatch(setCredentials({ user: { ...user, ...updated }, accessToken: undefined as any }));
+      toast.success('Profile saved!');
+    } catch (err: any) {
+      toast.error(err?.message ?? 'Failed to save profile');
+    } finally {
+      setSavingProfile(false);
+    }
+  };
+
+  const changePassword = async () => {
+    if (!pwForm.current || !pwForm.next || !pwForm.confirm) { toast.error('All password fields are required'); return; }
+    if (pwForm.next !== pwForm.confirm) { toast.error('New passwords do not match'); return; }
+    if (pwForm.next.length < 8) { toast.error('Password must be at least 8 characters'); return; }
+    setSavingPw(true);
+    try {
+      await api.post('/auth/change-password', { currentPassword: pwForm.current, newPassword: pwForm.next });
+      toast.success('Password updated!');
+      setPwForm({ current: '', next: '', confirm: '' });
+    } catch (err: any) {
+      toast.error(err?.message ?? 'Failed to update password');
+    } finally {
+      setSavingPw(false);
+    }
+  };
 
   const handleLogout = logout;
 
@@ -331,7 +362,7 @@ const Settings = () => {
                       <p className="text-[11px] text-[var(--color-text-dim)] font-medium">Email changes require verification. Contact support.</p>
                     </div>
                     <div className="flex justify-end pt-1">
-                      <Button onClick={save} leftIcon={<Save size={13} />}>Save Changes</Button>
+                      <Button loading={savingProfile} onClick={save} leftIcon={<Save size={13} />}>Save Changes</Button>
                     </div>
                   </div>
                 </Card>
@@ -344,17 +375,17 @@ const Settings = () => {
                     <SectionHeader title="Change Password" />
                     <div className="flex flex-col gap-4">
                       {[
-                        { id: 'cur-pass', label: 'Current Password' },
-                        { id: 'new-pass', label: 'New Password' },
-                        { id: 'cfm-pass', label: 'Confirm New Password' },
-                      ].map(({ id, label }) => (
+                        { id: 'cur-pass', label: 'Current Password', key: 'current' as const },
+                        { id: 'new-pass', label: 'New Password', key: 'next' as const },
+                        { id: 'cfm-pass', label: 'Confirm New Password', key: 'confirm' as const },
+                      ].map(({ id, label, key }) => (
                         <div key={id} className="flex flex-col gap-1.5">
                           <label htmlFor={id} className="text-xs font-bold text-[var(--color-text-secondary)] block uppercase tracking-wider">{label}</label>
-                          <input id={id} type="password" placeholder="••••••••" className="input-light" autoComplete="new-password" />
+                          <input id={id} type="password" placeholder="••••••••" className="input-light" autoComplete="new-password" value={pwForm[key]} onChange={e => setPwForm(p => ({ ...p, [key]: e.target.value }))} />
                         </div>
                       ))}
                       <div className="flex justify-end">
-                        <Button onClick={save} leftIcon={<Lock size={13} />}>Update Password</Button>
+                        <Button loading={savingPw} onClick={changePassword} leftIcon={<Lock size={13} />}>Update Password</Button>
                       </div>
                     </div>
                   </Card>

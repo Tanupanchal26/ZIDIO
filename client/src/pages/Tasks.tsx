@@ -18,11 +18,11 @@ import Modal from '../components/common/Modal';
 import Card from '../components/common/Card';
 import toast from 'react-hot-toast';
 
-type Status = 'todo' | 'in-progress' | 'done';
+type Status = 'todo' | 'in_progress' | 'done';
 
 const COLS: { id: Status; label: string; color: string }[] = [
   { id: 'todo',        label: 'To Do',       color: 'bg-[#AAAFAF]' },
-  { id: 'in-progress', label: 'In Progress', color: 'bg-[#AFA9B4]' },
+  { id: 'in_progress', label: 'In Progress', color: 'bg-[#AFA9B4]' },
   { id: 'done',        label: 'Done',        color: 'bg-emerald-500' },
 ];
 

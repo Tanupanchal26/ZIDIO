@@ -9,6 +9,8 @@ const notificationSocket = require('./notification.socket');
 const presenceSocket     = require('./presence.socket');
 const logger = require('../shared/utils/logger').default;
 
+const sanitizeLog = (val) => String(val ?? '').replace(/[\r\n\t\x00-\x1f\x7f]/g, '_');
+
 const initSockets = (io) => {
   // ── Auth middleware ────────────────────────────────────────────────────────
   io.use(socketRateLimiter);
@@ -42,7 +44,7 @@ io.use(async (socket, next) => {
   });
 
   io.on('connection', (socket) => {
-    logger.info(`[SOCKET] connected: ${socket.user?.id} (${socket.id})`);
+    logger.info(`[SOCKET] connected: ${sanitizeLog(socket.user?.id)} (${socket.id})`);  
 
     chatSocket(io, socket);
     meetingSocket(io, socket);
@@ -50,7 +52,7 @@ io.use(async (socket, next) => {
     presenceSocket(io, socket);
 
     socket.on('disconnect', (reason) => {
-      logger.info(`[SOCKET] disconnected: ${socket.user?.id} — ${reason}`);
+      logger.info(`[SOCKET] disconnected: ${sanitizeLog(socket.user?.id)} — ${sanitizeLog(reason)}`);
     });
   });
 };

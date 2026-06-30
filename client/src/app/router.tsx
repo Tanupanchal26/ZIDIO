@@ -12,6 +12,7 @@ const Login          = lazy(() => import('../pages/Login'));
 const Signup         = lazy(() => import('../pages/Signup'));
 const ForgotPassword = lazy(() => import('../pages/ForgotPassword'));
 const ResetPassword  = lazy(() => import('../pages/ResetPassword'));
+const VerifyEmail    = lazy(() => import('../pages/VerifyEmail'));
 const Dashboard      = lazy(() => import('../pages/Dashboard'));
 
 const Settings       = lazy(() => import('../pages/Settings'));
@@ -76,6 +77,7 @@ const AppRoutes = () => {
         <Route path={ROUTES.FORGOT_PASSWORD} element={<Suspense fallback={<PageFallback />}><ForgotPassword /></Suspense>} />
         <Route path={ROUTES.RESET_PASSWORD}  element={<Suspense fallback={<PageFallback />}><ResetPassword /></Suspense>} />
         <Route path="/reset-password"        element={<Suspense fallback={<PageFallback />}><ResetPassword /></Suspense>} />
+        <Route path={ROUTES.VERIFY_EMAIL}    element={<Suspense fallback={<PageFallback />}><VerifyEmail /></Suspense>} />
       </Route>
 
       {/* Protected app shell */}

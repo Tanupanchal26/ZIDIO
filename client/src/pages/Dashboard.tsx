@@ -2,8 +2,8 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import {
-  Video, CheckSquare, Brain, Users, Calendar, BarChart2,
-  Sparkles, Bell, TrendingUp, Clock, Plus, ArrowRight, Zap, Loader2
+  Video, CheckSquare, Users, Calendar, BarChart2,
+  Sparkles, Bell, TrendingUp, Clock, ArrowRight, Zap, Loader2
 } from 'lucide-react';
 import { useAppSelector } from '../hooks/useAppDispatch';
 import { ROUTES, MEETING_ROUTE } from '../constants';
@@ -47,11 +47,20 @@ const timeAgo = (iso: string) => {
   return h < 24 ? `${h}h ago` : `${Math.floor(h / 24)}d ago`;
 };
 
-const ACTIVITY = [
-  { icon: Brain, text: 'AI summary generated for Q4 Review', time: '5m ago', color: 'text-purple-600 dark:text-purple-400', bg: 'bg-purple-500/10 border border-purple-500/20' },
-  { icon: CheckSquare, text: 'Task completed', time: '12m ago', color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-500/10 border border-emerald-500/20' },
-  { icon: Users, text: 'Sarah K. joined Engineering team', time: '1h ago', color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-500/10 border border-blue-500/20' },
-];
+const ACTIVITY_META: Record<string, { icon: React.ElementType; color: string; bg: string }> = {
+  meeting_started:  { icon: Video,        color: 'text-blue-600 dark:text-blue-400',    bg: 'bg-blue-500/10 border border-blue-500/20' },
+  meeting_ended:    { icon: Video,        color: 'text-slate-500 dark:text-slate-400',  bg: 'bg-slate-500/10 border border-slate-500/20' },
+  meeting_invite:   { icon: Calendar,     color: 'text-indigo-600 dark:text-indigo-400',bg: 'bg-indigo-500/10 border border-indigo-500/20' },
+  meeting_reminder: { icon: Bell,         color: 'text-amber-600 dark:text-amber-400',  bg: 'bg-amber-500/10 border border-amber-500/20' },
+  task_assigned:    { icon: CheckSquare,  color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-500/10 border border-emerald-500/20' },
+  task_due:         { icon: CheckSquare,  color: 'text-red-600 dark:text-red-400',      bg: 'bg-red-500/10 border border-red-500/20' },
+  team_invite:      { icon: Users,        color: 'text-blue-600 dark:text-blue-400',    bg: 'bg-blue-500/10 border border-blue-500/20' },
+  team_role_changed:{ icon: Users,        color: 'text-purple-600 dark:text-purple-400',bg: 'bg-purple-500/10 border border-purple-500/20' },
+  channel_mention:  { icon: Bell,         color: 'text-pink-600 dark:text-pink-400',    bg: 'bg-pink-500/10 border border-pink-500/20' },
+  message_reply:    { icon: Bell,         color: 'text-cyan-600 dark:text-cyan-400',    bg: 'bg-cyan-500/10 border border-cyan-500/20' },
+  system:           { icon: Sparkles,     color: 'text-purple-600 dark:text-purple-400',bg: 'bg-purple-500/10 border border-purple-500/20' },
+};
+const DEFAULT_ACTIVITY_META = { icon: Bell, color: 'text-slate-500', bg: 'bg-slate-500/10 border border-slate-500/20' };
 
 const QUICK = [
   { label: 'New Meeting', icon: Video, to: ROUTES.LOBBY, color: 'text-blue-600 dark:text-blue-400', hoverClass: 'hover-blue', bg: 'bg-blue-50/40 dark:bg-blue-950/20', border: 'border-blue-100/50 dark:border-blue-900/10' },
@@ -82,7 +91,7 @@ export default function Dashboard() {
     );
   }
 
-  const { metrics, recentMeetings, upcomingMeetings, taskData } = data;
+  const { metrics, recentMeetings, upcomingMeetings, taskData, recentActivity } = data;
 
   const dynamicMetrics = [
     { label: 'Meetings this month', value: metrics.meetingsThisMonth, delta: '+24%', trendType: 'up', icon: Calendar, color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-500/10 border border-blue-500/20', glowClass: 'glow-blue' },
@@ -214,15 +223,25 @@ export default function Dashboard() {
               </div>
             </div>
             <div className="db-activity-list">
-              {ACTIVITY.map(({ icon: Icon, text, time, color, bg }) => (
-                <div key={text} className="db-activity-item">
-                  <div className={clsx("db-activity-icon-wrapper", bg)}><Icon size={16} className={color} /></div>
-                  <div className="db-activity-info">
-                    <p className="db-activity-text">{text}</p>
-                    <p className="db-activity-time">{time}</p>
-                  </div>
-                </div>
-              ))}
+              {(recentActivity ?? []).length === 0 ? (
+                <p className="text-xs text-[var(--color-text-secondary)] px-1 py-4 text-center">No recent activity</p>
+              ) : (
+                (recentActivity ?? []).map((item: any) => {
+                  const meta = ACTIVITY_META[item.type] ?? DEFAULT_ACTIVITY_META;
+                  const Icon = meta.icon;
+                  return (
+                    <div key={item.id} className="db-activity-item">
+                      <div className={clsx("db-activity-icon-wrapper", meta.bg)}>
+                        <Icon size={16} className={meta.color} />
+                      </div>
+                      <div className="db-activity-info">
+                        <p className="db-activity-text">{item.text}</p>
+                        <p className="db-activity-time">{timeAgo(item.time)}</p>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
             </div>
           </Card>
         </div>
