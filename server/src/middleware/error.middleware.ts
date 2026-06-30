@@ -68,3 +68,5 @@ const errorMiddleware: ErrorRequestHandler = (err, req: Request, res: Response, 
 };
 
 export default errorMiddleware;
+module.exports = errorMiddleware;
+module.exports.default = errorMiddleware;

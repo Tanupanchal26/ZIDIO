@@ -38,3 +38,5 @@ const validate = (schemas: ValidationSchemas): RequestHandler =>
   };
 
 export default validate;
+module.exports = validate;
+module.exports.default = validate;

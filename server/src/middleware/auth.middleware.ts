@@ -132,3 +132,5 @@ export const verifyOwnerOrAdmin: RequestHandler = (req, _res, next) => {
 };
 
 export default { authenticate, protect, authorize, roleGuard, scopeTenant, verifyOwnerOrAdmin };
+module.exports = { authenticate, protect, authorize, roleGuard, scopeTenant, verifyOwnerOrAdmin };
+module.exports.default = module.exports;
