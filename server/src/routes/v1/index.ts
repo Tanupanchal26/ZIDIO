@@ -183,3 +183,5 @@ router.get('/media',                                mediaCtrl.list);
 router.delete('/media/:id',                         mediaCtrl.delete);
 
 export default router;
+module.exports = router;
+module.exports.default = router;

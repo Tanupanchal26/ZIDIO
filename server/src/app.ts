@@ -131,3 +131,5 @@ app.use(sentryErrorHandler());
 app.use(errorMiddleware);
 
 export default app;
+module.exports = app;
+module.exports.default = app;
