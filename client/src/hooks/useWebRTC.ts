@@ -131,28 +131,59 @@ export const useWebRTC = ({ roomId, userId }: WebRTCConfig) => {
   useEffect(() => {
     let isMounted = true;
     const initMedia = async () => {
+      // Step 1: try camera + mic
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
         if (!isMounted) { stream.getTracks().forEach(t => t.stop()); return; }
-        // Apply initial mute state
         stream.getAudioTracks().forEach(t => { t.enabled = !isMuted; });
         stream.getVideoTracks().forEach(t => { t.enabled = true; });
         localStreamRef.current = stream;
         mediaReadyRef.current = true;
         setLocalStream(new MediaStream(stream.getTracks()));
-      } catch {
-        // Camera unavailable — try audio only
-        try {
-          const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-          if (!isMounted) { audioStream.getTracks().forEach(t => t.stop()); return; }
-          audioStream.getAudioTracks().forEach(t => { t.enabled = !isMuted; });
-          localStreamRef.current = audioStream;
-          mediaReadyRef.current = true;
-          setLocalStream(new MediaStream(audioStream.getTracks()));
-          toast('Camera not available — audio only', { icon: '🎤' });
-        } catch {
-          toast.error('Could not access microphone or camera. Check permissions.');
-        }
+        return;
+      } catch (err: any) {
+        console.warn('[WebRTC] Camera+mic failed:', err?.name, err?.message);
+      }
+
+      // Step 2: try mic only (camera may be blocked or missing)
+      try {
+        const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+        if (!isMounted) { audioStream.getTracks().forEach(t => t.stop()); return; }
+        audioStream.getAudioTracks().forEach(t => { t.enabled = !isMuted; });
+        localStreamRef.current = audioStream;
+        mediaReadyRef.current = true;
+        setLocalStream(new MediaStream(audioStream.getTracks()));
+        toast('No camera found — joined with audio only', { icon: '🎤' });
+        return;
+      } catch (err: any) {
+        console.warn('[WebRTC] Audio-only failed:', err?.name, err?.message);
+      }
+
+      // Step 3: try camera only (mic may be blocked)
+      try {
+        const videoStream = await navigator.mediaDevices.getUserMedia({ audio: false, video: true });
+        if (!isMounted) { videoStream.getTracks().forEach(t => t.stop()); return; }
+        localStreamRef.current = videoStream;
+        mediaReadyRef.current = true;
+        setLocalStream(new MediaStream(videoStream.getTracks()));
+        toast('No microphone found — joined with video only', { icon: '📷' });
+        return;
+      } catch (err: any) {
+        console.warn('[WebRTC] Video-only failed:', err?.name, err?.message);
+      }
+
+      // Step 4: all failed — join without media (can still chat)
+      if (isMounted) {
+        mediaReadyRef.current = true; // still mark ready so toggles don't get stuck
+        toast(
+          (t) => (
+            <span>
+              <b>Camera &amp; mic blocked.</b><br />
+              <span className="text-xs">In Chrome: click the 🔒 lock icon in the address bar → allow Camera &amp; Microphone → refresh.</span>
+            </span>
+          ),
+          { duration: 8000, icon: '🚫' }
+        );
       }
     };
     initMedia();
