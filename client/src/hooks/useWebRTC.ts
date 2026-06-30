@@ -176,13 +176,8 @@ export const useWebRTC = ({ roomId, userId }: WebRTCConfig) => {
       if (isMounted) {
         mediaReadyRef.current = true; // still mark ready so toggles don't get stuck
         toast(
-          (t) => (
-            <span>
-              <b>Camera &amp; mic blocked.</b><br />
-              <span className="text-xs">In Chrome: click the 🔒 lock icon in the address bar → allow Camera &amp; Microphone → refresh.</span>
-            </span>
-          ),
-          { duration: 8000, icon: '🚫' }
+          '🚫 Camera & mic blocked. In Chrome: click the 🔒 lock icon → allow Camera & Microphone → refresh.',
+          { duration: 8000 }
         );
       }
     };
