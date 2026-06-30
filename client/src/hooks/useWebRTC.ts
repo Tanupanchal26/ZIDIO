@@ -113,24 +113,34 @@ export const useWebRTC = ({ roomId, userId }: WebRTCConfig) => {
     }
   }, []);
 
-  // Initial Audio Setup
+  // Initial Audio + Video Setup
   useEffect(() => {
     let isMounted = true;
-    const initAudio = async () => {
+    const initMedia = async () => {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
         if (!isMounted) {
           stream.getTracks().forEach(t => t.stop());
           return;
         }
         stream.getAudioTracks().forEach(t => { t.enabled = !isMuted; });
+        stream.getVideoTracks().forEach(t => { t.enabled = true; });
         localStreamRef.current = stream;
         setLocalStream(new MediaStream(stream.getTracks()));
       } catch (err) {
-        console.error("Failed to get audio stream", err);
+        console.warn("Camera not available, falling back to audio only", err);
+        try {
+          const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          if (!isMounted) { audioStream.getTracks().forEach(t => t.stop()); return; }
+          audioStream.getAudioTracks().forEach(t => { t.enabled = !isMuted; });
+          localStreamRef.current = audioStream;
+          setLocalStream(new MediaStream(audioStream.getTracks()));
+        } catch (audioErr) {
+          console.error("Failed to get any media stream", audioErr);
+        }
       }
     };
-    initAudio();
+    initMedia();
 
     return () => {
       isMounted = false;

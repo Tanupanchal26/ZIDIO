@@ -19,7 +19,7 @@ import { useWebRTC } from '../hooks/useWebRTC';
 import { useTranscription } from '../hooks/useTranscription';
 import { useAppSelector } from '../hooks/useAppDispatch';
 import { useFocusTrap } from '../hooks/useFocusTrap';
-
+import { meetingService } from '../api/meeting.api';
 import Badge from '../components/common/Badge';
 import Logo from '../components/common/Logo';
 
@@ -129,8 +129,26 @@ const MeetingRoom = () => {
   
   useTranscription(id ?? '');
 
+  // Start meeting on mount, fetch real title, clean up on leave
   useEffect(() => {
-    if (id) setCurrentMeeting({ id, title: 'Live Meeting', roomId: id, host: user?.id ?? '' });
+    if (!id) return;
+    const initMeeting = async () => {
+      try {
+        const res: any = await meetingService.start(id);
+        const meeting = res?.data || res;
+        setCurrentMeeting({
+          id,
+          title: meeting?.title || 'Live Meeting',
+          roomId: meeting?.roomId || id,
+          host: meeting?.host || user?.id || '',
+          startedAt: meeting?.startedAt,
+        });
+      } catch {
+        // Meeting may already be started — still set local state
+        setCurrentMeeting({ id, title: 'Live Meeting', roomId: id, host: user?.id ?? '' });
+      }
+    };
+    initMeeting();
     return () => setCurrentMeeting(null);
   }, [id, user?.id, setCurrentMeeting]);
 
