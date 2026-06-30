@@ -237,3 +237,5 @@ export default {
   changePassword,
   unlockAccount,
 };
+module.exports = { signup, login, logout, logoutAll, refreshTokens, forgotPassword, resetPassword, verifyEmail, changePassword, unlockAccount };
+module.exports.default = module.exports;

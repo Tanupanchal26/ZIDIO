@@ -100,3 +100,5 @@ export default {
   deleteAccount,
   getAllUsers,
 };
+module.exports = { getProfile, getUserForAuth, updateProfile, updateAvatar, deleteAccount, getAllUsers };
+module.exports.default = module.exports;
