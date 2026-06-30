@@ -31,3 +31,5 @@ const httpLogger = morgan(isDev ? DEV_FORMAT : PROD_FORMAT, {
 });
 
 export default httpLogger;
+module.exports = httpLogger;
+module.exports.default = httpLogger;
