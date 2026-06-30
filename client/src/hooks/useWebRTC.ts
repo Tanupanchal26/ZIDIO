@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useMeetingStore } from '../store/meeting/meeting.store';
 import { getSocket } from '../utils/socket';
+import toast from 'react-hot-toast';
 
 interface WebRTCConfig { roomId: string; userId: string; }
 
@@ -13,92 +14,38 @@ const ICE_SERVERS: RTCConfiguration = {
 };
 
 export const useWebRTC = ({ roomId, userId }: WebRTCConfig) => {
-  const localStreamRef = useRef<MediaStream | null>(null);
-  const screenStreamRef = useRef<MediaStream | null>(null);
+  const localStreamRef   = useRef<MediaStream | null>(null);
+  const screenStreamRef  = useRef<MediaStream | null>(null);
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [remoteStreams, setRemoteStreams] = useState<Map<string, MediaStream>>(new Map());
   const peersRef = useRef<Map<string, RTCPeerConnection>>(new Map());
-  const { isVideoOff, isMuted, setScreenSharing } = useMeetingStore();
 
+  // Track whether initial media has been acquired
+  const mediaReadyRef = useRef(false);
+
+  const { isVideoOff, isMuted, setScreenSharing } = useMeetingStore();
   const socket = getSocket();
 
-  // Create a new peer connection for a remote user
-  const createPeerConnection = useCallback((remoteSocketId: string, isInitiator: boolean) => {
-    if (peersRef.current.has(remoteSocketId)) return peersRef.current.get(remoteSocketId)!;
+  // ── Helpers ──────────────────────────────────────────────────────────────────
 
-    const pc = new RTCPeerConnection(ICE_SERVERS);
-    peersRef.current.set(remoteSocketId, pc);
-
-    // Add local tracks to the connection
-    if (localStreamRef.current) {
-      localStreamRef.current.getTracks().forEach(track => {
-        pc.addTrack(track, localStreamRef.current!);
-      });
+  const broadcastMediaState = useCallback((videoOff: boolean, muted: boolean) => {
+    if (socket?.connected && roomId) {
+      socket.emit('meeting:media-state', { roomId, isMuted: muted, isVideoOff: videoOff, isScreenSharing: false });
     }
+  }, [socket, roomId]);
 
-    // Handle remote tracks
-    pc.ontrack = (event) => {
-      const [remoteStream] = event.streams;
-      if (remoteStream) {
-        setRemoteStreams(prev => {
-          const next = new Map(prev);
-          next.set(remoteSocketId, remoteStream);
-          return next;
-        });
+  const replaceVideoTrackInPeers = useCallback((track: MediaStreamTrack | null) => {
+    peersRef.current.forEach(pc => {
+      const sender = pc.getSenders().find(s => s.track?.kind === 'video');
+      if (sender) {
+        sender.replaceTrack(track).catch(() => {});
+      } else if (track && localStreamRef.current) {
+        pc.addTrack(track, localStreamRef.current);
       }
-    };
+    });
+  }, []);
 
-    // ICE candidates
-    pc.onicecandidate = (event) => {
-      if (event.candidate) {
-        socket.emit('meeting:signal', {
-          roomId,
-          to: remoteSocketId,
-          signal: { type: 'candidate', candidate: event.candidate },
-        });
-      }
-    };
-
-    pc.oniceconnectionstatechange = () => {
-      if (pc.iceConnectionState === 'disconnected' || pc.iceConnectionState === 'failed') {
-        if (isInitiator) {
-          pc.createOffer({ iceRestart: true })
-            .then(offer => pc.setLocalDescription(offer))
-            .then(() => {
-              socket.emit('meeting:signal', {
-                roomId,
-                to: remoteSocketId,
-                signal: { type: 'offer', sdp: pc.localDescription },
-              });
-            })
-            .catch(err => console.error('ICE restart failed:', err));
-        } else {
-          // Responder waits for the new offer, or closes if it takes too long
-          setTimeout(() => {
-            if (pc.iceConnectionState === 'disconnected' || pc.iceConnectionState === 'failed') {
-              closePeerConnection(remoteSocketId);
-            }
-          }, 5000);
-        }
-      }
-    };
-
-    // If we are the initiator, create and send offer
-    if (isInitiator) {
-      pc.createOffer()
-        .then(offer => pc.setLocalDescription(offer))
-        .then(() => {
-          socket.emit('meeting:signal', {
-            roomId,
-            to: remoteSocketId,
-            signal: { type: 'offer', sdp: pc.localDescription },
-          });
-        })
-        .catch(err => console.error('Error creating offer:', err));
-    }
-
-    return pc;
-  }, [roomId, socket]);
+  // ── Peer connection ───────────────────────────────────────────────────────────
 
   const closePeerConnection = useCallback((remoteSocketId: string) => {
     const pc = peersRef.current.get(remoteSocketId);
@@ -113,30 +60,98 @@ export const useWebRTC = ({ roomId, userId }: WebRTCConfig) => {
     }
   }, []);
 
-  // Initial Audio + Video Setup
+  const createPeerConnection = useCallback((remoteSocketId: string, isInitiator: boolean) => {
+    if (peersRef.current.has(remoteSocketId)) return peersRef.current.get(remoteSocketId)!;
+
+    const pc = new RTCPeerConnection(ICE_SERVERS);
+    peersRef.current.set(remoteSocketId, pc);
+
+    // Add current local tracks
+    if (localStreamRef.current) {
+      localStreamRef.current.getTracks().forEach(track => {
+        pc.addTrack(track, localStreamRef.current!);
+      });
+    }
+
+    pc.ontrack = (event) => {
+      const [remoteStream] = event.streams;
+      if (remoteStream) {
+        setRemoteStreams(prev => {
+          const next = new Map(prev);
+          next.set(remoteSocketId, remoteStream);
+          return next;
+        });
+      }
+    };
+
+    pc.onicecandidate = (event) => {
+      if (event.candidate) {
+        socket.emit('meeting:signal', {
+          roomId, to: remoteSocketId,
+          signal: { type: 'candidate', candidate: event.candidate },
+        });
+      }
+    };
+
+    pc.oniceconnectionstatechange = () => {
+      if (pc.iceConnectionState === 'disconnected' || pc.iceConnectionState === 'failed') {
+        if (isInitiator) {
+          pc.createOffer({ iceRestart: true })
+            .then(o => pc.setLocalDescription(o))
+            .then(() => socket.emit('meeting:signal', {
+              roomId, to: remoteSocketId,
+              signal: { type: 'offer', sdp: pc.localDescription },
+            }))
+            .catch(() => {});
+        } else {
+          setTimeout(() => {
+            if (pc.iceConnectionState === 'disconnected' || pc.iceConnectionState === 'failed') {
+              closePeerConnection(remoteSocketId);
+            }
+          }, 5000);
+        }
+      }
+    };
+
+    if (isInitiator) {
+      pc.createOffer()
+        .then(o => pc.setLocalDescription(o))
+        .then(() => socket.emit('meeting:signal', {
+          roomId, to: remoteSocketId,
+          signal: { type: 'offer', sdp: pc.localDescription },
+        }))
+        .catch(() => {});
+    }
+
+    return pc;
+  }, [roomId, socket, closePeerConnection]);
+
+  // ── Initial media setup ───────────────────────────────────────────────────────
+
   useEffect(() => {
     let isMounted = true;
     const initMedia = async () => {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
-        if (!isMounted) {
-          stream.getTracks().forEach(t => t.stop());
-          return;
-        }
+        if (!isMounted) { stream.getTracks().forEach(t => t.stop()); return; }
+        // Apply initial mute state
         stream.getAudioTracks().forEach(t => { t.enabled = !isMuted; });
         stream.getVideoTracks().forEach(t => { t.enabled = true; });
         localStreamRef.current = stream;
+        mediaReadyRef.current = true;
         setLocalStream(new MediaStream(stream.getTracks()));
-      } catch (err) {
-        console.warn("Camera not available, falling back to audio only", err);
+      } catch {
+        // Camera unavailable — try audio only
         try {
           const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
           if (!isMounted) { audioStream.getTracks().forEach(t => t.stop()); return; }
           audioStream.getAudioTracks().forEach(t => { t.enabled = !isMuted; });
           localStreamRef.current = audioStream;
+          mediaReadyRef.current = true;
           setLocalStream(new MediaStream(audioStream.getTracks()));
-        } catch (audioErr) {
-          console.error("Failed to get any media stream", audioErr);
+          toast('Camera not available — audio only', { icon: '🎤' });
+        } catch {
+          toast.error('Could not access microphone or camera. Check permissions.');
         }
       }
     };
@@ -148,65 +163,42 @@ export const useWebRTC = ({ roomId, userId }: WebRTCConfig) => {
       screenStreamRef.current?.getTracks().forEach(t => t.stop());
       peersRef.current.forEach(pc => pc.close());
       peersRef.current.clear();
+      mediaReadyRef.current = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Socket event handlers for WebRTC signaling
+  // ── Socket signaling ──────────────────────────────────────────────────────────
+
   useEffect(() => {
     if (!socket || !roomId) return;
 
-    // When a new user joins, create a peer connection as initiator
     const handleUserJoined = ({ socketId }: { socketId: string }) => {
-      if (socketId !== socket.id) {
-        createPeerConnection(socketId, true);
-      }
+      if (socketId !== socket.id) createPeerConnection(socketId, true);
     };
 
-    // When receiving a signal (offer, answer, or ICE candidate)
     const handleSignal = async ({ signal, from }: { signal: any; from: string }) => {
       let pc = peersRef.current.get(from);
-      
       if (signal.type === 'offer') {
-        // Create peer connection as responder
         pc = createPeerConnection(from, false);
         try {
           await pc.setRemoteDescription(new RTCSessionDescription(signal.sdp));
           const answer = await pc.createAnswer();
           await pc.setLocalDescription(answer);
-          socket.emit('meeting:signal', {
-            roomId,
-            to: from,
-            signal: { type: 'answer', sdp: pc.localDescription },
-          });
-        } catch (err) {
-          console.error('Error handling offer:', err);
-        }
+          socket.emit('meeting:signal', { roomId, to: from, signal: { type: 'answer', sdp: pc.localDescription } });
+        } catch (err) { console.error('Error handling offer:', err); }
       } else if (signal.type === 'answer' && pc) {
-        try {
-          await pc.setRemoteDescription(new RTCSessionDescription(signal.sdp));
-        } catch (err) {
-          console.error('Error handling answer:', err);
-        }
+        try { await pc.setRemoteDescription(new RTCSessionDescription(signal.sdp)); } catch {}
       } else if (signal.type === 'candidate' && pc) {
-        try {
-          await pc.addIceCandidate(new RTCIceCandidate(signal.candidate));
-        } catch (err) {
-          console.error('Error adding ICE candidate:', err);
-        }
+        try { await pc.addIceCandidate(new RTCIceCandidate(signal.candidate)); } catch {}
       }
     };
 
-    // When a user leaves, close their peer connection
-    const handleUserLeft = ({ socketId }: { socketId: string }) => {
-      closePeerConnection(socketId);
-    };
+    const handleUserLeft = ({ socketId }: { socketId: string }) => closePeerConnection(socketId);
 
     socket.on('meeting:user-joined', handleUserJoined);
     socket.on('meeting:signal', handleSignal);
     socket.on('meeting:user-left', handleUserLeft);
-
-    // Join the meeting room
     socket.emit('meeting:join', roomId);
 
     return () => {
@@ -217,127 +209,105 @@ export const useWebRTC = ({ roomId, userId }: WebRTCConfig) => {
     };
   }, [socket, roomId, createPeerConnection, closePeerConnection]);
 
-  // Handle Video Toggle — physically stop/start the device camera
+  // ── Camera toggle — physically stop/start device camera ──────────────────────
+
   useEffect(() => {
+    // Don't run until media is initialised
+    if (!mediaReadyRef.current) return;
+
     const toggleCamera = async () => {
       if (isVideoOff) {
-        // Stop every video track → turns off the camera indicator light
-        localStreamRef.current?.getVideoTracks().forEach(t => {
+        // Stop every video track → camera light turns OFF
+        const tracks = localStreamRef.current?.getVideoTracks() ?? [];
+        tracks.forEach(t => {
           t.stop();
           localStreamRef.current?.removeTrack(t);
         });
-        // Rebuild localStream with only audio so VideoTile shows avatar
-        const audioTracks = localStreamRef.current?.getAudioTracks() ?? [];
-        setLocalStream(audioTracks.length ? new MediaStream(audioTracks) : null);
+        replaceVideoTrackInPeers(null);
+        // Rebuild stream with audio only → VideoTile shows avatar
+        const audio = localStreamRef.current?.getAudioTracks() ?? [];
+        setLocalStream(audio.length ? new MediaStream(audio) : null);
       } else {
         // Re-acquire the physical camera
         try {
           const vStream = await navigator.mediaDevices.getUserMedia({ video: true });
-          const vTrack = vStream.getVideoTracks()[0];
+          const vTrack  = vStream.getVideoTracks()[0];
           if (!vTrack) return;
-
-          // Ensure localStreamRef exists
-          if (!localStreamRef.current) {
-            localStreamRef.current = new MediaStream();
-          }
+          if (!localStreamRef.current) localStreamRef.current = new MediaStream();
           localStreamRef.current.addTrack(vTrack);
-
-          // Replace track in every peer connection
-          peersRef.current.forEach(pc => {
-            const sender = pc.getSenders().find(s => s.track?.kind === 'video');
-            if (sender) sender.replaceTrack(vTrack);
-            else pc.addTrack(vTrack, localStreamRef.current!);
-          });
-
+          replaceVideoTrackInPeers(vTrack);
           setLocalStream(new MediaStream(localStreamRef.current.getTracks()));
-        } catch (err) {
-          console.error('Failed to re-acquire camera:', err);
+        } catch {
+          toast.error('Could not turn on camera. Check browser permissions.');
         }
       }
-      // Broadcast media state to other participants
-      if (socket?.connected && roomId) {
-        socket.emit('meeting:media-state', { roomId, isMuted, isVideoOff, isScreenSharing: false });
-      }
+      broadcastMediaState(isVideoOff, isMuted);
     };
+
     toggleCamera();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isVideoOff]);
 
-  // Handle Audio Toggle
+  // ── Mic toggle ────────────────────────────────────────────────────────────────
+
   useEffect(() => {
-    if (localStreamRef.current) {
-      localStreamRef.current.getAudioTracks().forEach(t => { t.enabled = !isMuted; });
-    }
+    if (!mediaReadyRef.current) return;
+    localStreamRef.current?.getAudioTracks().forEach(t => { t.enabled = !isMuted; });
+    broadcastMediaState(isVideoOff, isMuted);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isMuted]);
 
-    // Broadcast media state
-    if (socket?.connected && roomId) {
-      socket.emit('meeting:media-state', { roomId, isMuted, isVideoOff, isScreenSharing: false });
-    }
-  }, [isMuted, socket, roomId, isVideoOff]);
+  // ── Screen share ──────────────────────────────────────────────────────────────
 
-  const stopScreenShare = () => {
-    if (screenStreamRef.current) {
-      screenStreamRef.current.getTracks().forEach(t => t.stop());
-      screenStreamRef.current = null;
-    }
+  const stopScreenShare = useCallback(() => {
+    screenStreamRef.current?.getTracks().forEach(t => t.stop());
+    screenStreamRef.current = null;
     setScreenSharing(false);
-
-    // Broadcast screen share stopped
     if (socket?.connected && roomId) {
       socket.emit('meeting:screen-share', { roomId, isSharing: false });
     }
-
-    // Restore camera track to local stream
+    // Restore camera (or audio-only) stream
     if (localStreamRef.current) {
-      const cameraVideoTrack = localStreamRef.current.getVideoTracks()[0];
-      
-      // Update peers with camera track (or null if camera is off)
-      peersRef.current.forEach(pc => {
-        const sender = pc.getSenders().find(s => s.track?.kind === 'video');
-        if (sender) sender.replaceTrack(cameraVideoTrack || null);
-      });
-
+      replaceVideoTrackInPeers(localStreamRef.current.getVideoTracks()[0] ?? null);
       setLocalStream(new MediaStream(localStreamRef.current.getTracks()));
     }
-  };
+  }, [socket, roomId, setScreenSharing, replaceVideoTrackInPeers]);
 
-  const startScreenShare = async () => {
+  const startScreenShare = useCallback(async () => {
     try {
-      const screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+      const screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false });
       screenStreamRef.current = screenStream;
-      const screenVideoTrack = screenStream.getVideoTracks()[0];
+      const screenTrack = screenStream.getVideoTracks()[0];
 
-      // Listen for browser "Stop sharing" button
-      screenVideoTrack.onended = () => stopScreenShare();
+      // When user clicks browser "Stop sharing" button
+      screenTrack.onended = () => stopScreenShare();
 
-      // Replace outgoing video track for all peers
-      peersRef.current.forEach(pc => {
-        const sender = pc.getSenders().find(s => s.track?.kind === 'video');
-        if (sender) {
-          sender.replaceTrack(screenVideoTrack);
-        } else {
-          pc.addTrack(screenVideoTrack, screenStream);
-        }
-      });
+      replaceVideoTrackInPeers(screenTrack);
 
-      // Show screen share in local preview
-      const previewStream = new MediaStream([screenVideoTrack]);
-      if (localStreamRef.current) {
-        const audioTrack = localStreamRef.current.getAudioTracks()[0];
-        if (audioTrack) previewStream.addTrack(audioTrack);
-      }
-      setLocalStream(previewStream);
+      // Local preview: screen + mic audio
+      const preview = new MediaStream([screenTrack]);
+      const audioTrack = localStreamRef.current?.getAudioTracks()[0];
+      if (audioTrack) preview.addTrack(audioTrack);
+      setLocalStream(preview);
       setScreenSharing(true);
 
-      // Broadcast screen share started
       if (socket?.connected && roomId) {
         socket.emit('meeting:screen-share', { roomId, isSharing: true });
       }
-    } catch (err) {
-      console.error("Failed to start screen share", err);
+    } catch {
+      // User cancelled — no error toast needed
       setScreenSharing(false);
     }
-  };
+  }, [socket, roomId, setScreenSharing, stopScreenShare, replaceVideoTrackInPeers]);
 
-  return { localStreamRef, localStream, remoteStreams, peersRef, startScreenShare, stopScreenShare };
+  // ── Expose stopAllTracks for clean leave ──────────────────────────────────────
+
+  const stopAllTracks = useCallback(() => {
+    localStreamRef.current?.getTracks().forEach(t => t.stop());
+    screenStreamRef.current?.getTracks().forEach(t => t.stop());
+    peersRef.current.forEach(pc => pc.close());
+    peersRef.current.clear();
+  }, []);
+
+  return { localStreamRef, localStream, remoteStreams, peersRef, startScreenShare, stopScreenShare, stopAllTracks };
 };
