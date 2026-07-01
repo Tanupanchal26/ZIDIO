@@ -108,11 +108,6 @@ const Lobby = () => {
       <PageHeader
         title="Meetings"
         subtitle="Create, join or schedule meetings"
-        action={
-          <Button onClick={() => setShowCreate(true)} className="gap-2">
-            <Plus size={15} /> New Meeting
-          </Button>
-        }
       />
 
       {/* Action cards */}
