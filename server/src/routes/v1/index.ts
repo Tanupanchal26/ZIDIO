@@ -81,11 +81,11 @@ router.put('/meetings/:id/notes',   validate(MV.upsertNote),          meetingCtr
 
 // ── Teams ─────────────────────────────────────────────────────────────────────
 router.use('/teams', protect, scopeTenant());
-router.post('/teams',        authorize(ROLES.ADMIN), validate(TV.createTeam), teamCtrl.createTeam);
+router.post('/teams',                             validate(TV.createTeam), teamCtrl.createTeam);
 router.get('/teams',                                                            teamCtrl.listTeams);
 router.get('/teams/:id',                             validate(TV.teamParam),   teamCtrl.getTeam);
-router.put('/teams/:id',     authorize(ROLES.ADMIN), validate(TV.updateTeam), teamCtrl.updateTeam);
-router.delete('/teams/:id',  authorize(ROLES.ADMIN), validate(TV.teamParam),  teamCtrl.deleteTeam);
+router.put('/teams/:id',                             validate(TV.updateTeam), teamCtrl.updateTeam);
+router.delete('/teams/:id',                          validate(TV.teamParam),  teamCtrl.deleteTeam);
 router.post('/teams/:id/members',                    validate(TV.inviteMember),    teamCtrl.inviteMember);
 router.delete('/teams/:id/members/:userId', authorize(ROLES.ADMIN), validate(TV.memberParam), teamCtrl.removeMember);
 router.patch('/teams/:id/members/:userId/role',      validate(TV.updateMemberRole), teamCtrl.updateMemberRole);
