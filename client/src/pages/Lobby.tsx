@@ -119,8 +119,8 @@ const Lobby = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Create */}
         <Card hover className="flex flex-col gap-4 cursor-pointer" onClick={() => setShowCreate(true)}>
-          <div className="w-12 h-12 rounded-xl bg-[var(--color-primary)]/15 flex items-center justify-center">
-            <Plus size={22} className="text-[var(--color-primary)]" />
+          <div className="w-12 h-12 rounded-xl bg-[var(--color-surface-2)] border border-[var(--color-border)] flex items-center justify-center">
+            <Plus size={22} className="text-[var(--color-text-muted)]" />
           </div>
           <div>
             <h3 className="font-semibold text-[var(--color-text)] mb-1">New Meeting</h3>
