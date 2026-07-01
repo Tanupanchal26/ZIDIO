@@ -11,7 +11,6 @@ export interface Config {
   isProd: boolean;
   isTest: boolean;
   mongo:  { uri: string };
-  redis:  { url: string };
   jwt: {
     secret:           string;
     expiresIn:        string;
@@ -43,7 +42,6 @@ const schema = Joi.object({
   PORT: Joi.number().default(5000),
 
   MONGO_URI:  Joi.string().required(),
-  REDIS_URL:  Joi.string().default('redis://localhost:6379'),
 
   JWT_SECRET:             Joi.string().min(32).required(),
   JWT_EXPIRES_IN:         Joi.string().default('15m'),
@@ -86,7 +84,6 @@ const config: Config = {
   isTest: env.NODE_ENV === 'test',
 
   mongo:  { uri: env.MONGO_URI },
-  redis:  { url: env.REDIS_URL },
 
   jwt: {
     secret:           env.JWT_SECRET,

@@ -8,11 +8,9 @@ const xss = require('xss-clean');
 import hpp from 'hpp';
 import cookieParser from 'cookie-parser';
 import session from 'express-session';
-import { RedisStore } from 'connect-redis';
 import { Request, Response, NextFunction } from 'express';
 import mongoose from 'mongoose';
 import client from 'prom-client';
-import { getRedisClient } from './config/redis';
 
 import config from './config/env';
 const requestId = require('./middleware/requestId.middleware');
@@ -70,11 +68,7 @@ app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 app.use(cookieParser());
 
-const redisClient = getRedisClient();
 app.use(session({
-  store: redisClient
-    ? new RedisStore({ client: redisClient, prefix: 'sess:' })
-    : undefined,
   secret:            config.jwt.secret,
   resave:            false,
   saveUninitialized: false,
@@ -94,14 +88,13 @@ client.collectDefaultMetrics();
 
 app.get('/health', async (_req: Request, res: Response) => {
   const mongo = mongoose.connection.readyState === 1;
-  const redis = getRedisClient()?.isReady ?? false;
-  const status = mongo && redis ? 'ok' : 'degraded';
+  const status = mongo ? 'ok' : 'degraded';
   res.status(status === 'ok' ? 200 : 503).json({
     status,
     timestamp: new Date().toISOString(),
     uptime:    process.uptime(),
     requestId: res.locals.requestId,
-    dependencies: { mongo, redis },
+    dependencies: { mongo },
   });
 });
 

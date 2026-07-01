@@ -143,12 +143,6 @@ export const SOCKET_ROOMS = {
   USER:    (id: string) => `user:${id}`,
 } as const;
 
-// Redis Key Prefixes
-export const REDIS_KEYS = {
-  USER_CACHE:  (id: string) => `user:${id}`,
-  BLACKLIST:   (token: string) => `blacklist:${token}`,
-} as const;
-
 // JWT issuer / audience (must match between sign and verify)
 export const JWT_CLAIMS = {
   ISSUER:   'intellmeet',
