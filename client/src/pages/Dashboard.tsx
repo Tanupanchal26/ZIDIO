@@ -63,7 +63,7 @@ const ACTIVITY_META: Record<string, { icon: React.ElementType; color: string; bg
 const DEFAULT_ACTIVITY_META = { icon: Bell, color: 'text-slate-500', bg: 'bg-slate-500/10 border border-slate-500/20' };
 
 const QUICK = [
-  { label: 'New Meeting', icon: Video, to: ROUTES.LOBBY, color: 'text-blue-600 dark:text-blue-400', hoverClass: 'hover-blue', bg: 'bg-blue-50/40 dark:bg-blue-950/20', border: 'border-blue-100/50 dark:border-blue-900/10' },
+  { label: 'New Meeting', icon: Video, to: ROUTES.LOBBY, color: 'text-[var(--color-text)]', hoverClass: '', bg: '' },
   { label: 'Create Task', icon: CheckSquare, to: ROUTES.TASKS, color: 'text-emerald-600 dark:text-emerald-400', hoverClass: 'hover-emerald', bg: 'bg-emerald-50/40 dark:bg-emerald-950/20', border: 'border-emerald-100/50 dark:border-emerald-900/10' },
   { label: 'AI Summary', icon: Brain, to: ROUTES.AI_SUMMARY, color: 'text-purple-600 dark:text-purple-400', hoverClass: 'hover-purple', bg: 'bg-purple-50/40 dark:bg-purple-950/20', border: 'border-purple-100/50 dark:border-purple-900/10' },
   { label: 'Analytics', icon: BarChart2, to: ROUTES.ANALYTICS, color: 'text-amber-600 dark:text-amber-400', hoverClass: 'hover-amber', bg: 'bg-amber-50/40 dark:bg-amber-950/20', border: 'border-amber-100/50 dark:border-amber-900/10' },
