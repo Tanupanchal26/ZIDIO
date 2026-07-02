@@ -7,6 +7,12 @@ import asyncHandler from '../utils/asyncHandler';
 import { ROLES, ROLE_HIERARCHY, USER_STATUS } from '../constants';
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const User = require('../models/User');
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const Tenant = require('../models/Tenant');
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const Team = require('../models/Team');
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const Channel = require('../models/Channel');
 
 const extractBearerToken = (req: Request): string | null =>
   req.headers.authorization?.startsWith('Bearer ')
@@ -36,8 +42,44 @@ export const authenticate: RequestHandler = asyncHandler(async (req, _res, next)
   if (await isBlacklisted(token)) throw ApiError.unauthorized('Token revoked');
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const user = await userService.getUserForAuth(decoded.id) as any;
+  let user = await userService.getUserForAuth(decoded.id) as any;
   if (!user) throw ApiError.unauthorized('User no longer exists');
+
+  // Auto-remediate missing tenantId (e.g. for Google OAuth users created before the fix)
+  if (!user.tenantId) {
+    const toSlug = (str: string): string =>
+      str.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+
+    const tenantSlug = `${toSlug(user.name)}-${Date.now()}`;
+    const tenant = await Tenant.create({
+      name: `${user.name}'s Workspace`,
+      slug: tenantSlug,
+    });
+
+    user.tenantId = tenant._id;
+    await user.save();
+
+    // Create default team
+    const team = await Team.create({
+      tenantId:  tenant._id,
+      name:      'General',
+      slug:      'general',
+      createdBy: user._id,
+      members:   [{ user: user._id, role: 'owner' }],
+    });
+
+    // Create default channel
+    await Channel.create({
+      tenantId:  tenant._id,
+      name:      'general',
+      slug:      'general',
+      createdBy: user._id,
+      team:      team._id,
+      type:      'public',
+      isDefault: true,
+      members:   [user._id],
+    });
+  }
 
   if (user.status === USER_STATUS.BANNED)
     throw ApiError.forbidden('Account suspended. Contact support.');
