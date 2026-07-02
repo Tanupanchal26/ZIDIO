@@ -1,38 +1,56 @@
-// @ts-nocheck
-const Message            = require('../models/Message');
-const Channel            = require('../models/Channel');
+import type { Server, Socket } from 'socket.io';
+
+const Message = require('../models/Message');
+const Channel = require('../models/Channel');
 const { getRedisClient } = require('../config/redis');
 
-const CHANNEL_CACHE_TTL = 60; // seconds
+const CHANNEL_CACHE_TTL = 60;
 
-const getChannel = async (channelId) => {
+type ChatUser = {
+  id?: string;
+  name?: string;
+};
+
+type ChatSocket = Socket & { user?: ChatUser };
+
+type ChannelPayload = {
+  tenantId?: string;
+  _id?: string;
+};
+
+const getChannel = async (channelId: string): Promise<ChannelPayload | null> => {
   const redis = getRedisClient();
-  const key   = `channel:meta:${channelId}`;
+  const key = `channel:meta:${channelId}`;
 
   if (redis) {
     try {
       const hit = await redis.get(key);
-      if (hit) return JSON.parse(hit);
-    } catch {}
+      if (hit) return JSON.parse(hit) as ChannelPayload;
+    } catch {
+      // ignore cache failures and fall back to MongoDB
+    }
   }
 
   const channel = await Channel.findById(channelId).lean();
   if (channel && redis) {
-    try { await redis.setEx(key, CHANNEL_CACHE_TTL, JSON.stringify(channel)); } catch {}
+    try {
+      await redis.setEx(key, CHANNEL_CACHE_TTL, JSON.stringify(channel));
+    } catch {
+      // ignore cache failures
+    }
   }
-  return channel;
+  return channel as ChannelPayload | null;
 };
 
-module.exports = (io, socket) => {
-  // ── Meeting chat ───────────────────────────────────────────────────────────
-  socket.on('chat:join', (meetingId) => socket.join(`chat:${meetingId}`));
+module.exports = (io: Server, socket: ChatSocket): void => {
+  socket.on('chat:join', (meetingId: string) => socket.join(`chat:${meetingId}`));
 
-  socket.on('chat:message', async ({ meetingId, content }) => {
+  socket.on('chat:message', async ({ meetingId, content }: { meetingId: string; content: string }) => {
     if (!socket.user?.id || !content?.trim()) return;
     try {
       const message = await Message.create({
         meeting: meetingId,
-        sender:  socket.user.id,
+        sender: socket.user.id,
         content,
         type: 'text',
       });
@@ -43,21 +61,20 @@ module.exports = (io, socket) => {
     }
   });
 
-  socket.on('chat:typing', ({ meetingId, isTyping }) => {
+  socket.on('chat:typing', ({ meetingId, isTyping }: { meetingId: string; isTyping: boolean }) => {
     if (!socket.user?.id) return;
     socket.to(`chat:${meetingId}`).emit('chat:typing', {
       userId: socket.user.id,
-      name:   socket.user.name,
+      name: socket.user.name,
       isTyping,
     });
   });
 
-  socket.on('chat:leave', (meetingId) => socket.leave(`chat:${meetingId}`));
+  socket.on('chat:leave', (meetingId: string) => socket.leave(`chat:${meetingId}`));
 
-  // ── Channel chat ───────────────────────────────────────────────────────────
-  socket.on('channel:join', (channelId) => socket.join(`channel:${channelId}`));
+  socket.on('channel:join', (channelId: string) => socket.join(`channel:${channelId}`));
 
-  socket.on('channel:message', async ({ channelId, content, mentions = [], attachments = [] }) => {
+  socket.on('channel:message', async ({ channelId, content, mentions = [], attachments = [] }: { channelId: string; content: string; mentions?: string[]; attachments?: string[] }) => {
     if (!socket.user?.id || !content?.trim()) return;
     try {
       const channel = await getChannel(channelId);
@@ -66,8 +83,8 @@ module.exports = (io, socket) => {
       const [message] = await Promise.all([
         Message.create({
           tenantId: channel.tenantId,
-          channel:  channelId,
-          sender:   socket.user.id,
+          channel: channelId,
+          sender: socket.user.id,
           content,
           mentions,
           attachments,
@@ -84,29 +101,28 @@ module.exports = (io, socket) => {
     }
   });
 
-  socket.on('channel:typing', ({ channelId, isTyping }) => {
+  socket.on('channel:typing', ({ channelId, isTyping }: { channelId: string; isTyping: boolean }) => {
     if (!socket.user?.id) return;
     socket.to(`channel:${channelId}`).emit('channel:typing', {
       userId: socket.user.id,
-      name:   socket.user.name,
+      name: socket.user.name,
       isTyping,
     });
   });
 
-  socket.on('channel:read', ({ channelId, messageId }) => {
+  socket.on('channel:read', ({ channelId, messageId }: { channelId: string; messageId: string }) => {
     if (!socket.user?.id) return;
     socket.to(`channel:${channelId}`).emit('channel:read', { userId: socket.user.id, messageId });
   });
 
-  socket.on('channel:delivered', ({ channelId, messageId }) => {
+  socket.on('channel:delivered', ({ channelId, messageId }: { channelId: string; messageId: string }) => {
     if (!socket.user?.id) return;
     socket.to(`channel:${channelId}`).emit('channel:delivery', { messageId, state: 'delivered' });
   });
 
-  socket.on('channel:leave', (channelId) => socket.leave(`channel:${channelId}`));
+  socket.on('channel:leave', (channelId: string) => socket.leave(`channel:${channelId}`));
 
-  // ── Message edit ───────────────────────────────────────────────────────────
-  socket.on('chat:edit', async ({ messageId, content, channelId, meetingId }) => {
+  socket.on('chat:edit', async ({ messageId, content, channelId, meetingId }: { messageId: string; content: string; channelId?: string; meetingId?: string }) => {
     if (!socket.user?.id || !content?.trim()) return;
     const msg = await Message.findOneAndUpdate(
       { _id: messageId, sender: socket.user.id },
@@ -118,8 +134,7 @@ module.exports = (io, socket) => {
     io.to(room).emit('chat:edited', msg);
   });
 
-  // ── Message delete ─────────────────────────────────────────────────────────
-  socket.on('chat:delete', async ({ messageId, channelId, meetingId }) => {
+  socket.on('chat:delete', async ({ messageId, channelId, meetingId }: { messageId: string; channelId?: string; meetingId?: string }) => {
     if (!socket.user?.id) return;
     const msg = await Message.findOneAndUpdate(
       { _id: messageId, sender: socket.user.id },
@@ -131,15 +146,14 @@ module.exports = (io, socket) => {
     io.to(room).emit('chat:deleted', { messageId });
   });
 
-  // ── Thread reply ───────────────────────────────────────────────────────────
-  socket.on('chat:reply', async ({ parentId, channelId, meetingId, content }) => {
+  socket.on('chat:reply', async ({ parentId, channelId, meetingId, content }: { parentId: string; channelId?: string; meetingId?: string; content: string }) => {
     if (!socket.user?.id || !content?.trim() || !parentId) return;
     const [message] = await Promise.all([
       Message.create({
-        channel:  channelId  || null,
-        meeting:  meetingId  || null,
+        channel: channelId || null,
+        meeting: meetingId || null,
         parentId,
-        sender:   socket.user.id,
+        sender: socket.user.id,
         content,
         type: 'text',
       }),
@@ -150,11 +164,9 @@ module.exports = (io, socket) => {
     io.to(room).emit('chat:reply', populated);
   });
 
-  // ── Reaction — atomic $addToSet / $pull instead of full document save ──────
-  socket.on('chat:react', async ({ messageId, emoji, channelId, meetingId }) => {
+  socket.on('chat:react', async ({ messageId, emoji, channelId, meetingId }: { messageId: string; emoji: string; channelId?: string; meetingId?: string }) => {
     if (!socket.user?.id) return;
 
-    // Try to pull first (toggle off); if nothing was pulled, push (toggle on)
     const pulled = await Message.findOneAndUpdate(
       { _id: messageId, 'reactions.emoji': emoji, 'reactions.users': socket.user.id },
       { $pull: { 'reactions.$.users': socket.user.id } },

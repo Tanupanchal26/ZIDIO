@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction, RequestHandler } from 'express';
+import { Types } from 'mongoose';
 import userService from '../services/user.service';
 import { isBlacklisted } from '../utils/redisBlacklist';
 import { verifyAccessToken, AccessTokenPayload } from '../services/jwt.service';
@@ -14,6 +15,18 @@ const Team = require('../models/Team');
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const Channel = require('../models/Channel');
 
+type AuthenticatedRequest = Request & {
+  user?: {
+    _id?: Types.ObjectId | string;
+    tenantId?: Types.ObjectId | string | null;
+    name?: string;
+    role?: string;
+    status?: string;
+    passwordChangedAt?: Date | null;
+    save?: () => Promise<unknown>;
+  };
+};
+
 const extractBearerToken = (req: Request): string | null =>
   req.headers.authorization?.startsWith('Bearer ')
     ? req.headers.authorization.split(' ')[1]
@@ -21,17 +34,13 @@ const extractBearerToken = (req: Request): string | null =>
       ?? (req.query.token as string | undefined)
       ?? null;
 
-/**
- * Verifies the Bearer access token and attaches `req.user`.
- * Blocks locked / banned / inactive accounts.
- */
-export const authenticate: RequestHandler = asyncHandler(async (req, _res, next) => {
+export const authenticate: RequestHandler = asyncHandler(async (req: AuthenticatedRequest, _res: Response, next: NextFunction) => {
   const token = extractBearerToken(req);
   if (!token) throw ApiError.unauthorized('Access token required');
 
   let decoded: AccessTokenPayload & { iat?: number };
   try {
-    decoded = verifyAccessToken(token) as unknown as AccessTokenPayload & { iat?: number };
+    decoded = verifyAccessToken(token) as AccessTokenPayload & { iat?: number };
   } catch (err) {
     const msg = (err as Error).name === 'TokenExpiredError'
       ? 'Access token expired'
@@ -41,43 +50,39 @@ export const authenticate: RequestHandler = asyncHandler(async (req, _res, next)
 
   if (await isBlacklisted(token)) throw ApiError.unauthorized('Token revoked');
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let user = await userService.getUserForAuth(decoded.id) as any;
+  const user = await userService.getUserForAuth(decoded.id) as unknown as AuthenticatedRequest['user'] | null;
   if (!user) throw ApiError.unauthorized('User no longer exists');
 
-  // Auto-remediate missing tenantId (e.g. for Google OAuth users created before the fix)
   if (!user.tenantId) {
     const toSlug = (str: string): string =>
       str.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 
-    const tenantSlug = `${toSlug(user.name)}-${Date.now()}`;
+    const tenantSlug = `${toSlug(user.name ?? 'user')}-${Date.now()}`;
     const tenant = await Tenant.create({
-      name: `${user.name}'s Workspace`,
+      name: `${user.name ?? 'User'}'s Workspace`,
       slug: tenantSlug,
     });
 
     user.tenantId = tenant._id;
-    await user.save();
+    await user.save?.();
 
-    // Create default team
     const team = await Team.create({
-      tenantId:  tenant._id,
-      name:      'General',
-      slug:      'general',
+      tenantId: tenant._id,
+      name: 'General',
+      slug: 'general',
       createdBy: user._id,
-      members:   [{ user: user._id, role: 'owner' }],
+      members: [{ user: user._id, role: 'owner' }],
     });
 
-    // Create default channel
     await Channel.create({
-      tenantId:  tenant._id,
-      name:      'general',
-      slug:      'general',
+      tenantId: tenant._id,
+      name: 'general',
+      slug: 'general',
       createdBy: user._id,
-      team:      team._id,
-      type:      'public',
+      team: team._id,
+      type: 'public',
       isDefault: true,
-      members:   [user._id],
+      members: [user._id],
     });
   }
 
@@ -91,26 +96,20 @@ export const authenticate: RequestHandler = asyncHandler(async (req, _res, next)
   if (user.passwordChangedAt) {
     const fullUser = await User.findById(decoded.id).select('+passwordChangedAt');
     const tokenIssuedAtMs = (decoded.iat ?? 0) * 1000;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    if ((fullUser as any)?.passwordChangedAt?.getTime() > tokenIssuedAtMs) {
+    const passwordChangedAt = (fullUser as { passwordChangedAt?: Date | null } | null)?.passwordChangedAt;
+    if (passwordChangedAt && passwordChangedAt.getTime() > tokenIssuedAtMs) {
       throw ApiError.unauthorized('Password recently changed. Please log in again.');
     }
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  req.user = user as any;
+  req.user = user;
   next();
 });
 
-// Alias used in existing routes
 export const protect = authenticate;
 
-/**
- * Checks that req.user.role is one of the explicitly listed roles.
- * Must come AFTER authenticate().
- */
 export const authorize = (...roles: string[]): RequestHandler =>
-  (req, _res, next) => {
+  (req: AuthenticatedRequest, _res: Response, next: NextFunction) => {
     if (!req.user) throw ApiError.unauthorized('Not authenticated');
 
     const allowedRoles = [...roles];
@@ -119,21 +118,16 @@ export const authorize = (...roles: string[]): RequestHandler =>
     }
 
     if (!allowedRoles.includes(req.user.role as string)) {
-      throw ApiError.forbidden(
-        `Role '${req.user.role}' does not have permission for this action`
-      );
+      throw ApiError.forbidden(`Role '${req.user.role}' does not have permission for this action`);
     }
     next();
   };
 
-/**
- * Hierarchy-based guard — allows the specified role AND anything above it.
- */
 export const roleGuard = (minimumRole: string): RequestHandler =>
-  (req, _res, next) => {
+  (req: AuthenticatedRequest, _res: Response, next: NextFunction) => {
     if (!req.user) throw ApiError.unauthorized('Not authenticated');
 
-    const userLevel     = ROLE_HIERARCHY.indexOf(req.user.role as typeof ROLE_HIERARCHY[number]);
+    const userLevel = ROLE_HIERARCHY.indexOf(req.user.role as typeof ROLE_HIERARCHY[number]);
     const requiredLevel = ROLE_HIERARCHY.indexOf(minimumRole as typeof ROLE_HIERARCHY[number]);
 
     if (userLevel === -1 || requiredLevel === -1) {
@@ -141,31 +135,20 @@ export const roleGuard = (minimumRole: string): RequestHandler =>
     }
 
     if (userLevel > requiredLevel) {
-      throw ApiError.forbidden(
-        `Minimum required role: '${minimumRole}'. Your role: '${req.user.role}'`
-      );
+      throw ApiError.forbidden(`Minimum required role: '${minimumRole}'. Your role: '${req.user.role}'`);
     }
     next();
   };
 
-/**
- * Injects tenantId from the authenticated user into req.tenantFilter.
- */
 export const scopeTenant = (field = 'tenantId'): RequestHandler =>
-  (req, _res, next) => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    req.tenantId     = (req.user as any)?.tenantId ?? undefined;
+  (req: AuthenticatedRequest, _res: Response, next: NextFunction) => {
+    req.tenantId = req.user?.tenantId ?? undefined;
     req.tenantFilter = { [field]: req.tenantId };
     next();
   };
 
-/**
- * Allows access if the authenticated user owns the resource (req.params.id)
- * or is admin / super_admin.
- */
-export const verifyOwnerOrAdmin: RequestHandler = (req, _res, next) => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const isOwner = (req.user as any)?._id?.toString() === req.params.id;
+export const verifyOwnerOrAdmin: RequestHandler = (req: AuthenticatedRequest, _res: Response, next: NextFunction) => {
+  const isOwner = req.user?._id?.toString() === req.params.id;
   const isAdmin = ([ROLES.ADMIN, ROLES.SUPER_ADMIN] as string[]).includes(req.user?.role ?? '');
   if (!isOwner && !isAdmin) {
     throw ApiError.forbidden('You can only access your own resources');
