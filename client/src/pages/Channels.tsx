@@ -9,14 +9,14 @@ import { useSocket, safeEmit } from '../hooks/useSocket';
 import { useChatStore, type ChannelMessage } from '../store/chat/chat.store';
 import { usePresence } from '../hooks/usePresence';
 import { toChannel } from '../constants';
-import { Button } from '../shared/ui';
-import { Modal } from '../shared/ui/Modal';
+import Button from '../components/common/Button';
+import Modal from '../components/common/Modal';
 import Loader from '../components/common/Loader';
 import { ChannelHeader } from '../components/channels/ChannelHeader';
 
 import { MessageList } from '../features/chat/components/MessageList';
 import { MessageInput } from '../features/chat/components/MessageInput';
-import { TypingIndicator } from '../shared/components/TypingIndicator';
+import { TypingIndicator } from '../components/common/TypingIndicator';
 import toast from 'react-hot-toast';
 import { clsx } from 'clsx';
 

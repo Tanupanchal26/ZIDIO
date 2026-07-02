@@ -19,18 +19,18 @@ const validate = (schemas: ValidationSchemas): RequestHandler =>
       if (!schema) continue;
 
       const { error } = schema.validate(req[target], {
-        abortEarly:   true,
+        abortEarly:   false,
         stripUnknown: true,
         convert:      true,
       });
 
       if (error) {
-        const [detail]   = error.details;
-        const field      = detail.path.join('.');
-        const message    = detail.message.replace(/['"]/g, '');
-        const fieldError = { field, message };
-        const apiErr     = ApiError.badRequest(message, [fieldError]);
-        apiErr.field     = field;
+        const fieldErrors = error.details.map((d) => ({
+          field:   d.path.join('.'),
+          message: d.message.replace(/['"]/g, ''),
+        }));
+        const apiErr = ApiError.badRequest(fieldErrors[0].message, fieldErrors);
+        apiErr.field = fieldErrors[0].field;
         return next(apiErr);
       }
     }

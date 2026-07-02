@@ -17,7 +17,7 @@ const ChatBox = ({ meetingId }: { meetingId: string }) => {
 
   const handleSend = () => {
     if (!input.trim() || !user) return;
-    sendMessage(input.trim(), { id: user.id, name: user.name });
+    sendMessage(input.trim());
     setInput('');
     sendTyping(user.name, false);
   };

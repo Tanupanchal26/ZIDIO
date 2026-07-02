@@ -1,6 +1,7 @@
 import { useState } from 'react';
+import { API_BASE_URL } from '../../constants';
 
-const GOOGLE_AUTH_URL = 'http://localhost:5000/api/v1/auth/google';
+const GOOGLE_AUTH_URL = `${API_BASE_URL.replace(/\/api\/v1$/, '')}/api/v1/auth/google`;
 
 const GoogleIcon = () => (
   <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">

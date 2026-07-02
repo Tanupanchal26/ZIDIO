@@ -48,4 +48,3 @@ export class ApiError extends Error {
 export default ApiError;
 module.exports = ApiError;
 module.exports.default = ApiError;
-module.exports.ApiError = ApiError;

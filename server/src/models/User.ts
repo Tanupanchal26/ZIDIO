@@ -34,9 +34,6 @@ const userSchema = new mongoose.Schema({
   loginAttempts: { type: Number, default: 0, select: false },
   lockUntil:     { type: Date,   default: null, select: false },
 
-  // ── Token stores (never returned by default) ───────────────────────────────
-  refreshTokens: [{ type: String, select: false }],
-
   // ── Email verification ─────────────────────────────────────────────────────
   emailVerifyToken:   { type: String, select: false },
   emailVerifyExpires: { type: Date,   select: false },
@@ -63,7 +60,6 @@ userSchema.pre('save', async function (next) {
   this.password = await bcrypt.hash(this.password, AUTH.BCRYPT_ROUNDS);
   // Invalidate all refresh tokens on password change
   if (!this.isNew) {
-    this.refreshTokens    = [];
     this.passwordChangedAt = new Date();
   }
   next();
@@ -120,7 +116,6 @@ userSchema.methods.createToken = function (type) {
 userSchema.methods.toJSON = function () {
   const obj = this.toObject();
   delete obj.password;
-  delete obj.refreshTokens;
   delete obj.loginAttempts;
   delete obj.lockUntil;
   delete obj.emailVerifyToken;

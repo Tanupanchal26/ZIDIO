@@ -1,34 +1,37 @@
 // @ts-nocheck
-const { getRedisClient } = require('../config/redis');
-const ApiError = require('../utils/ApiError');
-const logger   = require('../shared/utils/logger').default;
+const logger = require('../shared/utils/logger').default;
 
-/**
- * Limits Socket.IO connections per IP to 30 per minute.
- * Uses Redis INCR with expiry to work across multiple instances.
- */
-module.exports = async (socket, next) => {
-  const client = getRedisClient();
-  if (!client) return next(); // If Redis unavailable, allow (fallback).
+const WINDOW_MS  = 60 * 1000; // 1 minute
+const MAX_HITS   = 30;
 
-  const ip = socket.handshake.address;
-  const key = `socketRate:${ip}`;
-  try {
-    const count = await client.incr(key);
-    if (count === 1) {
-      // Set TTL of 60 seconds on first hit
-      await client.expire(key, 60);
-    }
-    if (count > 30) {
-      // Exceeded limit
-      return next(new Error('Too many socket connections – rate limit exceeded'));
-    }
-    next();
-  } catch (err) {
-    // Fail open on error — but log with proper logger
-    logger.error('Socket rate limiter error', err);
-    next();
+// ip -> array of timestamps within the current window
+const hitMap = new Map();
+
+// Prune stale entries every 5 minutes to prevent unbounded memory growth
+setInterval(() => {
+  const cutoff = Date.now() - WINDOW_MS;
+  for (const [ip, hits] of hitMap.entries()) {
+    const fresh = hits.filter((t) => t > cutoff);
+    if (fresh.length === 0) hitMap.delete(ip);
+    else hitMap.set(ip, fresh);
   }
+}, 5 * 60 * 1000).unref();
+
+module.exports = (socket, next) => {
+  const ip  = socket.handshake.address ?? 'unknown';
+  const now = Date.now();
+  const cutoff = now - WINDOW_MS;
+
+  const hits = (hitMap.get(ip) ?? []).filter((t) => t > cutoff);
+  hits.push(now);
+  hitMap.set(ip, hits);
+
+  if (hits.length > MAX_HITS) {
+    logger.warn(`[SOCKET] Rate limit exceeded for IP: ${ip}`);
+    return next(new Error('Too many socket connections — rate limit exceeded'));
+  }
+
+  next();
 };
 
 export {};

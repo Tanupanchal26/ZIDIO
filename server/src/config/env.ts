@@ -4,6 +4,11 @@ import path from 'path';
 
 dotenv.config({ path: path.join(__dirname, '../../.env') });
 
+// Normalise: support both MONGO_URI and MONGODB_URI
+if (!process.env.MONGO_URI && process.env.MONGODB_URI) {
+  process.env.MONGO_URI = process.env.MONGODB_URI;
+}
+
 export interface Config {
   env:    string;
   port:   number;
@@ -17,6 +22,7 @@ export interface Config {
     refreshSecret:    string;
     refreshExpiresIn: string;
   };
+  sessionSecret: string;
   cors:      { allowedOrigins: string[] };
   cloudinary: { name: string; key: string; secret: string };
   openai:     { apiKey: string };
@@ -41,12 +47,14 @@ const schema = Joi.object({
     .default('development'),
   PORT: Joi.number().default(5000),
 
-  MONGO_URI:  Joi.string().default(process.env.MONGODB_URI || process.env.MONGO_URI).required(),
+  MONGO_URI: Joi.string().required(),
 
   JWT_SECRET:             Joi.string().min(32).required(),
   JWT_EXPIRES_IN:         Joi.string().default('15m'),
   JWT_REFRESH_SECRET:     Joi.string().min(32).required(),
   JWT_REFRESH_EXPIRES_IN: Joi.string().default('7d'),
+
+  SESSION_SECRET: Joi.string().min(32).required(),
 
   ALLOWED_ORIGINS: Joi.string().default('http://localhost:5173'),
 
@@ -76,6 +84,19 @@ if (error) {
   process.exit(1);
 }
 
+// Reject placeholder secrets in production
+if (env.NODE_ENV === 'production') {
+  const placeholders = ['replace-with', 'your-secret', 'changeme', 'example', 'placeholder'];
+  const sensitiveKeys = ['JWT_SECRET', 'JWT_REFRESH_SECRET', 'SESSION_SECRET', 'OPENAI_API_KEY', 'CLOUDINARY_API_SECRET', 'GOOGLE_CLIENT_SECRET'];
+  for (const key of sensitiveKeys) {
+    const val: string = (env[key] ?? '').toLowerCase();
+    if (placeholders.some((p) => val.includes(p))) {
+      console.error(`\n[CONFIG ERROR] ${key} contains a placeholder value — set a real secret in production.\n`);
+      process.exit(1);
+    }
+  }
+}
+
 const config: Config = {
   env:    env.NODE_ENV,
   port:   env.PORT,
@@ -91,6 +112,8 @@ const config: Config = {
     refreshSecret:    env.JWT_REFRESH_SECRET,
     refreshExpiresIn: env.JWT_REFRESH_EXPIRES_IN,
   },
+
+  sessionSecret: env.SESSION_SECRET,
 
   cors: {
     allowedOrigins: env.ALLOWED_ORIGINS.split(',').map((o: string) => o.trim()),

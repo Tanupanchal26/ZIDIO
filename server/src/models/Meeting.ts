@@ -64,5 +64,3 @@ meetingSchema.index({ tenantId: 1, 'participants': 1 });
 meetingSchema.index({ roomId: 1 }, { unique: true });
 
 module.exports = mongoose.model('Meeting', meetingSchema);
-
-;

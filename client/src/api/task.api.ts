@@ -11,9 +11,10 @@ export interface Task {
   createdAt: string;
 }
 
+const listTasks = () => api.get('/tasks');
+
 export const taskService = {
-  getAll: () => api.get('/tasks'),
-  list:   () => api.get('/tasks'),
+  list: listTasks,
   create: (data: Partial<Task>) => api.post('/tasks', data),
   update: (id: string, data: Partial<Task>) => api.put(`/tasks/${id}`, data),
   delete: (id: string) => api.delete(`/tasks/${id}`),

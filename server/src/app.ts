@@ -39,7 +39,7 @@ app.use(helmet({
       scriptSrc:  ["'self'"],
       styleSrc:   ["'self'", "'unsafe-inline'"],
       imgSrc:     ["'self'", 'data:', 'https://res.cloudinary.com', 'https://lh3.googleusercontent.com'],
-      connectSrc: ["'self'", 'http://localhost:5000', 'ws://localhost:5000'],
+      connectSrc: ["'self'", config.clientUrl, config.clientUrl.replace(/^http/, 'ws')],
       fontSrc:    ["'self'"],
       objectSrc:  ["'none'"],
       frameSrc:   ["'none'"],
@@ -69,7 +69,7 @@ app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 app.use(cookieParser());
 
 app.use(session({
-  secret:            config.jwt.secret,
+  secret:            config.sessionSecret,
   resave:            false,
   saveUninitialized: false,
   cookie:            { secure: config.isProd, httpOnly: true, maxAge: 10 * 60 * 1000 },

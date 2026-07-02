@@ -3,7 +3,6 @@ export const ROUTES = {
   HOME:            '/',
   LOGIN:           '/login',
   SIGNUP:          '/signup',
-  REGISTER:        '/signup',           // backwards-compat alias
   FORGOT_PASSWORD: '/forgot-password',
   RESET_PASSWORD:  '/reset-password/:token',
   VERIFY_EMAIL:    '/verify-email/:token',

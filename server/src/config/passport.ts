@@ -3,54 +3,9 @@ import { Strategy as GoogleStrategy, type Profile } from 'passport-google-oauth2
 import crypto from 'crypto';
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const User = require('../models/User');
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const Tenant = require('../models/Tenant');
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const Team = require('../models/Team');
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const Channel = require('../models/Channel');
+const { ensureUserTenant } = require('../services/tenant.service');
 import config from './env';
 import logger from '../shared/utils/logger';
-
-const toSlug = (str: string): string =>
-  str.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const ensureUserTenant = async (user: any): Promise<any> => {
-  if (user.tenantId) return user;
-
-  const tenantSlug = `${toSlug(user.name)}-${Date.now()}`;
-  const tenant = await Tenant.create({
-    name: `${user.name}'s Workspace`,
-    slug: tenantSlug,
-  });
-
-  user.tenantId = tenant._id;
-  await user.save();
-
-  // Create default team
-  const team = await Team.create({
-    tenantId:  tenant._id,
-    name:      'General',
-    slug:      'general',
-    createdBy: user._id,
-    members:   [{ user: user._id, role: 'owner' }],
-  });
-
-  // Create default channel
-  await Channel.create({
-    tenantId:  tenant._id,
-    name:      'general',
-    slug:      'general',
-    createdBy: user._id,
-    team:      team._id,
-    type:      'public',
-    isDefault: true,
-    members:   [user._id],
-  });
-
-  return user;
-};
 
 if (!config.google.clientId || !config.google.clientSecret) {
   logger.warn('[Passport] Google OAuth skipped — GOOGLE_CLIENT_ID or GOOGLE_CLIENT_SECRET not set');

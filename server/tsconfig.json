@@ -14,7 +14,7 @@
     "rootDir": ".",
     "baseUrl": ".",
     "lib": ["es2022"],
-    "types": ["node"],
+    "types": ["node", "jest"],
     "typeRoots": ["./src/@types", "./node_modules/@types"],
     "resolveJsonModule": true,
     "ignoreDeprecations": "6.0",

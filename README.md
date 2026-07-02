@@ -102,7 +102,7 @@ ZIDIO/
 │   └── terraform/            # AWS infrastructure (ECS, ECR, ALB, ElastiCache)
 │
 ├── docs/                     # Full project documentation
-│   ├── API.md
+│   ├── api.md
 │   ├── ARCHITECTURE.md
 │   ├── DEPLOYMENT_GUIDE.md
 │   ├── ENV_VARIABLES.md

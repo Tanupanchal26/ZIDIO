@@ -18,6 +18,12 @@ exports.updateProfile = asyncHandler(async (req, res) => {
   ApiResponse.ok(res, { user }, 'Profile updated');
 });
 
+// Update a user's role (admin only)
+exports.updateRole = asyncHandler(async (req, res) => {
+  const user = await userService.updateRole(req.params.userId, req.body.role);
+  ApiResponse.ok(res, { user }, 'Role updated');
+});
+
 // Upload avatar — POST /users/avatar
 exports.uploadAvatar = asyncHandler(async (req, res) => {
   if (!req.file) throw ApiError.badRequest('No file uploaded');

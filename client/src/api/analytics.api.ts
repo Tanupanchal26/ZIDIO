@@ -1,6 +1,8 @@
 import api from './axios';
 
+const getDashboard = () => api.get('/analytics/dashboard');
+
 export const analyticsService = {
-  getDashboard: () => api.get('/analytics/dashboard'),
-  getAnalytics: () => api.get('/analytics/dashboard'),
+  getDashboard,
+  getAnalytics: () => getDashboard(),
 };

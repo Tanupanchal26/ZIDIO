@@ -8,12 +8,6 @@ import asyncHandler from '../utils/asyncHandler';
 import { ROLES, ROLE_HIERARCHY, USER_STATUS } from '../constants';
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const User = require('../models/User');
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const Tenant = require('../models/Tenant');
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const Team = require('../models/Team');
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const Channel = require('../models/Channel');
 
 type AuthenticatedRequest = Request & {
   user?: {
@@ -52,40 +46,6 @@ export const authenticate: RequestHandler = asyncHandler(async (req: Authenticat
 
   const user = await userService.getUserForAuth(decoded.id) as unknown as AuthenticatedRequest['user'] | null;
   if (!user) throw ApiError.unauthorized('User no longer exists');
-
-  if (!user.tenantId) {
-    const toSlug = (str: string): string =>
-      str.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-
-    const tenantSlug = `${toSlug(user.name ?? 'user')}-${Date.now()}`;
-    const tenant = await Tenant.create({
-      name: `${user.name ?? 'User'}'s Workspace`,
-      slug: tenantSlug,
-    });
-
-    user.tenantId = tenant._id;
-    await user.save?.();
-
-    const team = await Team.create({
-      tenantId: tenant._id,
-      name: 'General',
-      slug: 'general',
-      createdBy: user._id,
-      members: [{ user: user._id, role: 'owner' }],
-    });
-
-    await Channel.create({
-      tenantId: tenant._id,
-      name: 'general',
-      slug: 'general',
-      createdBy: user._id,
-      team: team._id,
-      type: 'public',
-      isDefault: true,
-      members: [user._id],
-    });
-  }
-
   if (user.status === USER_STATUS.BANNED)
     throw ApiError.forbidden('Account suspended. Contact support.');
   if (user.status === USER_STATUS.LOCKED)

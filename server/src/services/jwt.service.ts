@@ -3,7 +3,12 @@ import crypto from 'crypto';
 import { Response } from 'express';
 import config from '../config/env';
 import { AUTH, COOKIE_NAMES, JWT_CLAIMS } from '../constants';
-import RefreshToken from '../models/refreshToken.model';
+import RefreshTokenModel from '../models/refreshToken.model';
+
+const RefreshToken = ((RefreshTokenModel as { default?: unknown }).default ?? RefreshTokenModel) as {
+  create: (doc: Record<string, unknown>) => Promise<unknown>;
+  findOne: (query: Record<string, unknown>) => Promise<unknown>;
+};
 
 export interface AccessTokenPayload {
   id:    string;

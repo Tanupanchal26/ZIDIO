@@ -1,6 +1,5 @@
-import { Lock, Hash } from 'lucide-react';
-import { Button } from '../../shared/ui';
-import { useAppSelector } from '../../hooks/useAppDispatch';
+import { Lock } from 'lucide-react';
+import Button from '../../components/common/Button';
 import type { Channel } from '../../api/team.api';
 
 interface ChannelHeaderProps {

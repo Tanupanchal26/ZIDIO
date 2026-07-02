@@ -2,20 +2,16 @@
 const User = require('../models/User');
 import ApiError from '../utils/ApiError';
 import logger from '../shared/utils/logger';
+import type { Document } from 'mongoose';
 
 const sanitizeLog = (val: unknown): string =>
   String(val).replace(/[\r\n\t\x00-\x1f\x7f]/g, '_');
-import { getRedisClient } from '../config/redis';
-import { CACHE_TTL, REDIS_KEYS } from '../constants';
-import type { Document } from 'mongoose';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type UserDoc = Document & Record<string, any>;
 
-const USER_CACHE_TTL = CACHE_TTL.USER_SESSION;
-
-const invalidateUserCache = async (userId: string): Promise<void> => {
-  // Redis removed
+const invalidateUserCache = async (_userId: string): Promise<void> => {
+  // Redis removed — no-op until Redis is re-enabled
 };
 
 export const getProfile = async (userId: string): Promise<UserDoc> => {
@@ -30,7 +26,7 @@ export const getProfile = async (userId: string): Promise<UserDoc> => {
 
 export const getUserForAuth = async (userId: string): Promise<UserDoc> => {
   const user = await User.findById(userId)
-    .select('+password +loginAttempts +lockUntil +refreshTokens +passwordChangedAt');
+    .select('+password +loginAttempts +lockUntil +passwordChangedAt');
   if (!user) {
     logger.warn(`User not found for auth: ${sanitizeLog(userId)}`);
     throw ApiError.unauthorized('User not found');
@@ -38,7 +34,13 @@ export const getUserForAuth = async (userId: string): Promise<UserDoc> => {
   return user as UserDoc;
 };
 
-const ALLOWED_UPDATE_FIELDS: ReadonlyArray<string> = ['name'];
+const ALLOWED_UPDATE_FIELDS: ReadonlyArray<string> = ['name', 'avatar', 'bio'];
+const ALLOWED_ROLE_VALUES = Object.values({
+  super_admin: 'super_admin',
+  admin: 'admin',
+  member: 'member',
+  guest: 'guest',
+});
 
 export const updateProfile = async (userId: string, updateData: Record<string, unknown>): Promise<UserDoc> => {
   // Whitelist — prevent mass-assignment of sensitive fields (role, isVerified, googleId, etc.)
@@ -53,6 +55,26 @@ export const updateProfile = async (userId: string, updateData: Record<string, u
     logger.warn(`User not found for update: ${sanitizeLog(userId)}`);
     throw ApiError.notFound('User not found');
   }
+  await invalidateUserCache(userId);
+  return user as UserDoc;
+};
+
+export const updateRole = async (userId: string, role: string): Promise<UserDoc> => {
+  if (!ALLOWED_ROLE_VALUES.includes(role)) {
+    throw ApiError.badRequest('Invalid role');
+  }
+
+  const user = await User.findByIdAndUpdate(
+    userId,
+    { role },
+    { new: true, runValidators: true }
+  ).select('-password');
+
+  if (!user) {
+    logger.warn(`User not found for role update: ${sanitizeLog(userId)}`);
+    throw ApiError.notFound('User not found');
+  }
+
   await invalidateUserCache(userId);
   return user as UserDoc;
 };
@@ -77,16 +99,26 @@ export const deleteAccount = async (userId: string): Promise<void> => {
   await invalidateUserCache(userId);
 };
 
-export const getAllUsers = async (): Promise<UserDoc[]> =>
-  User.find().select('-password') as Promise<UserDoc[]>;
+export const getAllUsers = async (
+  page  = 1,
+  limit = 20,
+): Promise<{ users: UserDoc[]; total: number; page: number; pages: number }> => {
+  const skip  = (page - 1) * limit;
+  const [users, total] = await Promise.all([
+    User.find().select('-password').skip(skip).limit(limit).lean(),
+    User.countDocuments(),
+  ]);
+  return { users, total, page, pages: Math.ceil(total / limit) };
+};
 
 export default {
   getProfile,
   getUserForAuth,
   updateProfile,
+  updateRole,
   updateAvatar,
   deleteAccount,
   getAllUsers,
 };
-module.exports = { getProfile, getUserForAuth, updateProfile, updateAvatar, deleteAccount, getAllUsers };
+module.exports = { getProfile, getUserForAuth, updateProfile, updateRole, updateAvatar, deleteAccount, getAllUsers };
 module.exports.default = module.exports;

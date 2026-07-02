@@ -29,17 +29,11 @@ exports.googleCallback = async (req, res) => {
       path:     '/',
     });
 
-    const url = new URL(`${clientUrl}/auth/google/success`);
-    url.searchParams.set('id',         String(user._id));
-    url.searchParams.set('name',       user.name       || '');
-    url.searchParams.set('email',      user.email      || '');
-    url.searchParams.set('avatar',     user.avatar     || '');
-    url.searchParams.set('role',       user.role       || 'member');
-    url.searchParams.set('isVerified', String(!!user.isVerified));
-
-    return res.redirect(url.toString());
+    // User data is fetched client-side via /auth/me after reading the token cookie
+    return res.redirect(`${clientUrl}/auth/google/success`);
   } catch (err) {
-    console.error('[Google OAuth] callback error:', err.message);
+    const logger = require('../../shared/utils/logger').default;
+    logger.error('[Google OAuth] callback error', { message: err.message });
     return res.redirect(`${clientUrl}/login?error=${encodeURIComponent('Google sign-in failed.')}`);
   }
 };

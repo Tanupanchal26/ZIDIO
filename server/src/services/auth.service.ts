@@ -3,6 +3,7 @@ const userRepo = require('../repositories/user.repository');
 const teamRepo = require('../repositories/team.repository');
 const channelRepo = require('../repositories/channel.repository');
 const Tenant = require('../models/Tenant');
+const { ensureUserTenant, toSlug } = require('./tenant.service');
 import * as jwtService from './jwt.service';
 const emailService = require('./email.service');
 import ApiError from '../utils/ApiError';
@@ -10,9 +11,6 @@ import logger from '../shared/utils/logger';
 import { USER_STATUS, AUTH, PLANS } from '../constants';
 
 const INVALID_CREDENTIALS_MSG = 'Invalid email or password';
-
-const toSlug = (str: string): string =>
-  str.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 
 export interface SignupPayload {
   name:     string;
@@ -35,50 +33,21 @@ export const signup = async ({ name, email, password, role }: SignupPayload): Pr
   session.startTransaction();
 
   try {
-    const [tenant] = await Tenant.create(
-      [{ name: `${name}'s Workspace`, slug: `${toSlug(name)}-${Date.now()}`, plan: PLANS.FREE }],
-      { session }
-    );
-
     const user = await userRepo.create(
-      { name, email, password, role, tenantId: tenant._id },
+      { name, email, password, role },
       { session }
     );
 
-    const [team] = await teamRepo.create(
-      [{
-        tenantId:  tenant._id,
-        name:      'General',
-        slug:      'general',
-        createdBy: user._id,
-        members:   [{ user: user._id, role: 'owner' }],
-      }],
-      { session }
-    );
-
-    await channelRepo.create(
-      [{
-        tenantId:  tenant._id,
-        team:      team._id,
-        name:      'general',
-        slug:      'general',
-        type:      'public',
-        isDefault: true,
-        createdBy: user._id,
-        members:   [user._id],
-      }],
-      { session }
-    );
+    await ensureUserTenant(user);
 
     const rawToken = user.createToken('emailVerify');
     await user.save({ validateBeforeSave: false, session });
     await session.commitTransaction();
 
-    emailService.sendVerificationEmail(user, rawToken).catch(() => undefined);
+    emailService.sendVerificationEmail(user, rawToken).catch((_error: unknown): void => undefined);
 
     const { accessToken, refreshToken } = await jwtService.generateTokenPair(user);
-    const hashedRefresh = jwtService.hashToken(refreshToken);
-    await userRepo.addRefreshToken(user._id, hashedRefresh);
+    // generateTokenPair writes the hashed token to the RefreshToken collection internally
 
     return { user, accessToken, refreshToken };
   } catch (err) {
@@ -130,17 +99,13 @@ export const login = async ({
   await user.resetLoginAttempts();
 
   const { accessToken, refreshToken } = await jwtService.generateTokenPair(user);
-  const hashedRefresh = jwtService.hashToken(refreshToken);
-  await userRepo.addRefreshToken(user._id, hashedRefresh);
+  // generateTokenPair writes the hashed token to the RefreshToken collection internally
 
   return { user, accessToken, refreshToken };
 };
 
 export const logout = async (userId: string, rawRefreshToken?: string): Promise<void> => {
-  if (rawRefreshToken) {
-    const hashed = jwtService.hashToken(rawRefreshToken);
-    await userRepo.removeRefreshToken(userId, hashed);
-  }
+  await userRepo.removeRefreshToken(userId, rawRefreshToken ? jwtService.hashToken(rawRefreshToken) : '');
 };
 
 export const logoutAll = async (userId: string): Promise<void> => {
@@ -167,7 +132,7 @@ export const refreshTokens = async (rawRefreshToken: string): Promise<AuthResult
 
   await userRepo.removeRefreshToken(user._id, hashedIncoming);
   const { accessToken, refreshToken: newRefresh } = await jwtService.generateTokenPair(user);
-  await userRepo.addRefreshToken(user._id, jwtService.hashToken(newRefresh));
+  // generateTokenPair writes the new hashed token to the RefreshToken collection internally
 
   return { user, accessToken, refreshToken: newRefresh };
 };
@@ -178,7 +143,7 @@ export const forgotPassword = async (email: string): Promise<void> => {
 
   const rawToken = user.createToken('passwordReset');
   await user.save({ validateBeforeSave: false });
-  await emailService.sendPasswordResetEmail(user, rawToken).catch(() => undefined);
+  await emailService.sendPasswordResetEmail(user, rawToken).catch((_error: unknown): void => undefined);
 };
 
 export const resetPassword = async (rawToken: string, newPassword: string): Promise<Document> => {

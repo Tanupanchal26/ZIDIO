@@ -21,11 +21,12 @@ export const ROLES = {
   SUPER_ADMIN: 'super_admin',
   ADMIN:       'admin',
   MEMBER:      'member',
+  GUEST:       'guest',
 } as const;
 
 export type Role = typeof ROLES[keyof typeof ROLES];
 
-export const ROLE_HIERARCHY: Role[] = [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.MEMBER];
+export const ROLE_HIERARCHY: Role[] = [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.MEMBER, ROLES.GUEST];
 
 // User Status
 export const USER_STATUS = {

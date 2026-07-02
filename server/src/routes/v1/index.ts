@@ -62,6 +62,7 @@ router.get('/users/me',      protect,                                    userCtr
 router.put('/users/me',      protect, validate(UV.updateProfile),         userCtrl.updateProfile);
 router.delete('/users/me',   protect,                                    userCtrl.deleteAccount);
 router.get('/users',         protect, authorize('admin', 'super_admin'),  userCtrl.getAllUsers);
+router.patch('/users/:userId/role', protect, authorize('admin', 'super_admin'), validate(UV.updateRole), userCtrl.updateRole);
 router.post('/users/avatar', protect, upload.single('avatar'),            userCtrl.uploadAvatar);
 
 // ── Meetings ──────────────────────────────────────────────────────────────────

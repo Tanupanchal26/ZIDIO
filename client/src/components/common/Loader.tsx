@@ -1,5 +1,4 @@
 import { clsx } from 'clsx';
-import { Zap } from 'lucide-react';
 
 interface Props {
   fullPage?: boolean;

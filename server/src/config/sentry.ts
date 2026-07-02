@@ -7,7 +7,10 @@ let Sentry = null;
 const initSentry = (app) => {
   const dsn = process.env.SENTRY_DSN;
   if (!dsn) {
-    console.log('[Sentry] No SENTRY_DSN set — error monitoring disabled');
+    // Only log in non-production to avoid noise
+    if (process.env.NODE_ENV !== 'production') {
+      process.stdout.write('[Sentry] No SENTRY_DSN set — error monitoring disabled\n');
+    }
     return;
   }
 
@@ -20,9 +23,10 @@ const initSentry = (app) => {
       tracesSampleRate: process.env.NODE_ENV === 'production' ? 0.1 : 1.0,
     });
 
-    console.log('[Sentry] Initialized successfully');
+    // Use process.stdout to avoid circular dependency with winston logger
+    process.stdout.write('[Sentry] Initialized successfully\n');
   } catch (err) {
-    console.log('[Sentry] @sentry/node not installed — install the package to enable');
+    process.stdout.write('[Sentry] @sentry/node not installed — install the package to enable\n');
     Sentry = null;
   }
 };

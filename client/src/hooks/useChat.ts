@@ -35,7 +35,7 @@ export const useChat = (meetingId: string) => {
     };
   }, [meetingId, socket]);
 
-  const sendMessage = (content: string, sender: { id: string; name: string }) => {
+  const sendMessage = (content: string) => {
     safeEmit('chat:message', { meetingId, content });
   };
 

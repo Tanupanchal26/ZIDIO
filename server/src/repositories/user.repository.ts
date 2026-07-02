@@ -2,6 +2,7 @@
 const crypto = require('crypto');
 const BaseRepository = require('./base.repository');
 const User = require('../models/User');
+const RefreshToken = require('../models/refreshToken.model').default;
 
 class UserRepository extends BaseRepository {
   constructor() { super(User); }
@@ -11,7 +12,7 @@ class UserRepository extends BaseRepository {
   /** Full user with password + lockout fields for login flow */
   findByEmailForAuth(email) {
     return User.findOne({ email })
-      .select('+password +loginAttempts +lockUntil +refreshTokens');
+      .select('+password +loginAttempts +lockUntil');
   }
 
   /** Find user by email (no password) */
@@ -25,7 +26,7 @@ class UserRepository extends BaseRepository {
     return User.findOne({
       passwordResetToken:   hashed,
       passwordResetExpires: { $gt: Date.now() },
-    }).select('+passwordResetToken +passwordResetExpires +passwordChangedAt +refreshTokens');
+    }).select('+passwordResetToken +passwordResetExpires +passwordChangedAt');
   }
 
   /** Find by hashed email-verify token that hasn't expired */
@@ -39,36 +40,32 @@ class UserRepository extends BaseRepository {
 
   /** Find user by id with password (change-password flow) */
   findByIdWithPassword(id) {
-    return User.findById(id).select('+password +refreshTokens +passwordChangedAt');
+    return User.findById(id).select('+password +passwordChangedAt');
   }
 
-  // ── Refresh token management ───────────────────────────────────────────────
+  // ── Refresh token management (delegates to RefreshToken collection) ─────────
 
-  /** Store a hashed refresh token (rotation: one token per session) */
+  /** Store a hashed refresh token */
   addRefreshToken(userId, hashedToken) {
-    return User.findByIdAndUpdate(userId, {
-      $push: { refreshTokens: hashedToken },
-    });
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    return RefreshToken.create({ tokenHash: hashedToken, userId, expiresAt });
   }
 
   /** Remove a specific hashed refresh token (logout single session) */
-  removeRefreshToken(userId, hashedToken) {
-    return User.findByIdAndUpdate(userId, {
-      $pull: { refreshTokens: hashedToken },
-    });
+  removeRefreshToken(_userId, hashedToken) {
+    return RefreshToken.deleteOne({ tokenHash: hashedToken });
   }
 
-  /** Remove all refresh tokens (logout all sessions) */
+  /** Remove all refresh tokens for a user (logout all sessions) */
   clearAllRefreshTokens(userId) {
-    return User.findByIdAndUpdate(userId, {
-      $set: { refreshTokens: [] },
-    });
+    return RefreshToken.deleteMany({ userId });
   }
 
-  /** Find user and verify a hashed token exists in their refresh token list */
+  /** Find user by verifying a hashed token exists in the RefreshToken collection */
   async findByRefreshToken(hashedToken) {
-    return User.findOne({ refreshTokens: hashedToken })
-      .select('+refreshTokens');
+    const record = await RefreshToken.findOne({ tokenHash: hashedToken });
+    if (!record) return null;
+    return User.findById(record.userId);
   }
 
   // ── Profile update ─────────────────────────────────────────────────────────

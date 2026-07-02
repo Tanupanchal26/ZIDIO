@@ -1,9 +1,10 @@
 import { useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAppDispatch } from '../hooks/useAppDispatch';
-import { setCredentials, type User } from '../store/auth/auth.slice';
+import { setCredentials } from '../store/auth/auth.slice';
 import toast from 'react-hot-toast';
 import { ROUTES, STORAGE_KEYS } from '../constants';
+import { authService } from '../api/auth.api';
 
 const OAUTH_COOKIE_NAME = '__oauth_token';
 
@@ -19,31 +20,31 @@ const clearCookie = (name: string): void => {
 const GoogleAuthSuccess = () => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
-  const [params] = useSearchParams();
 
   useEffect(() => {
-    const accessToken = readCookie(OAUTH_COOKIE_NAME) ?? params.get('token');
+    const accessToken = readCookie(OAUTH_COOKIE_NAME);
 
     if (accessToken) {
       clearCookie(OAUTH_COOKIE_NAME);
-      const user: User = {
-        id:         params.get('id')         ?? '',
-        name:       params.get('name')       ?? '',
-        email:      params.get('email')      ?? '',
-        avatar:     params.get('avatar')     ?? '',
-        role:       params.get('role')       ?? 'member',
-        isVerified: params.get('isVerified') === 'true',
-      };
-
       localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, accessToken);
-      localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user));
-      dispatch(setCredentials({ user, accessToken }));
-      toast.success(`Welcome, ${user.name || 'back'}! 🎉`);
-      navigate(ROUTES.DASHBOARD, { replace: true });
+
+      // Fetch user data from API — never read PII from URL params
+      authService.me()
+        .then((user) => {
+          localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user));
+          dispatch(setCredentials({ user, accessToken }));
+          toast.success(`Welcome, ${(user as { name?: string }).name || 'back'}! 🎉`);
+          navigate(ROUTES.DASHBOARD, { replace: true });
+        })
+        .catch(() => {
+          localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
+          toast.error('Google sign-in failed.');
+          navigate(ROUTES.LOGIN, { replace: true });
+        });
       return;
     }
 
-    // Check if we already logged in (e.g. from the first StrictMode mount)
+    // Already logged in (e.g. StrictMode second mount)
     const existingToken = localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
     if (existingToken) {
       navigate(ROUTES.DASHBOARD, { replace: true });

@@ -1,5 +1,5 @@
-import { lazy, Suspense, useEffect, useState } from 'react';
-import { Routes, Route, useLocation, Navigate, useNavigate } from 'react-router-dom';
+import { lazy, Suspense, useEffect } from 'react';
+import { Routes, Route, useLocation } from 'react-router-dom';
 import { ProtectedRoute, PublicRoute, RoleProtectedRoute } from '../components/auth/ProtectedRoute';
 import RedirectProfileToSettings from '../components/auth/RedirectProfileToSettings';
 import AppLayout from '../components/layout/AppLayout';
