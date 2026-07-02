@@ -23,28 +23,35 @@ const GoogleAuthSuccess = () => {
 
   useEffect(() => {
     const accessToken = readCookie(OAUTH_COOKIE_NAME) ?? params.get('token');
-    clearCookie(OAUTH_COOKIE_NAME);
 
-    if (!accessToken) {
-      toast.error('Google sign-in failed.');
-      navigate(ROUTES.LOGIN, { replace: true });
+    if (accessToken) {
+      clearCookie(OAUTH_COOKIE_NAME);
+      const user: User = {
+        id:         params.get('id')         ?? '',
+        name:       params.get('name')       ?? '',
+        email:      params.get('email')      ?? '',
+        avatar:     params.get('avatar')     ?? '',
+        role:       params.get('role')       ?? 'member',
+        isVerified: params.get('isVerified') === 'true',
+      };
+
+      localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, accessToken);
+      localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user));
+      dispatch(setCredentials({ user, accessToken }));
+      toast.success(`Welcome, ${user.name || 'back'}! 🎉`);
+      navigate(ROUTES.DASHBOARD, { replace: true });
       return;
     }
 
-    const user: User = {
-      id:         params.get('id')         ?? '',
-      name:       params.get('name')       ?? '',
-      email:      params.get('email')      ?? '',
-      avatar:     params.get('avatar')     ?? '',
-      role:       params.get('role')       ?? 'member',
-      isVerified: params.get('isVerified') === 'true',
-    };
+    // Check if we already logged in (e.g. from the first StrictMode mount)
+    const existingToken = localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
+    if (existingToken) {
+      navigate(ROUTES.DASHBOARD, { replace: true });
+      return;
+    }
 
-    localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, accessToken);
-    localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user));
-    dispatch(setCredentials({ user, accessToken }));
-    toast.success(`Welcome, ${user.name || 'back'}! 🎉`);
-    navigate(ROUTES.DASHBOARD, { replace: true });
+    toast.error('Google sign-in failed.');
+    navigate(ROUTES.LOGIN, { replace: true });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

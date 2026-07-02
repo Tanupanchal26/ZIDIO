@@ -41,7 +41,7 @@ const schema = Joi.object({
     .default('development'),
   PORT: Joi.number().default(5000),
 
-  MONGO_URI:  Joi.string().required(),
+  MONGO_URI:  Joi.string().default(process.env.MONGODB_URI || process.env.MONGO_URI).required(),
 
   JWT_SECRET:             Joi.string().min(32).required(),
   JWT_EXPIRES_IN:         Joi.string().default('15m'),
