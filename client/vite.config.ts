@@ -8,15 +8,7 @@ export default defineConfig({
   build: {
     sourcemap: 'hidden',
     rollupOptions: {
-      output: {
-        manualChunks: {
-          vendor: ['react', 'react-dom', 'react-router-dom'],
-          ui:     ['lucide-react', 'clsx', 'react-hot-toast'],
-          store:  ['@reduxjs/toolkit', 'react-redux', 'zustand'],
-          query:  ['@tanstack/react-query'],
-          socket: ['socket.io-client'],
-        },
-      },
+      // let vite/rolldown handle chunks
     },
     chunkSizeWarningLimit: 600,
   },

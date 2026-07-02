@@ -11,7 +11,7 @@ export const useAuth = () => {
   const { user, accessToken: token, isAuthenticated } = useAppSelector((s) => s.auth);
   const navigate = useNavigate();
 
-  const login = async (email: string, password: string, redirectTo = ROUTES.DASHBOARD) => {
+  const login = async (email: string, password: string, redirectTo: string = ROUTES.DASHBOARD) => {
     const res = (await authService.login({ email, password })) as any;
     const userData    = res.data?.user    || res.user;
     const accessToken = res.data?.accessToken || res.accessToken || res.token;

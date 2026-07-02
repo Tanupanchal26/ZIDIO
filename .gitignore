@@ -4,13 +4,16 @@
 !.env.example
 
 # Logs
-server/logs/*.log
-server/logs/.*-audit.json
+logs/
 server/logs/
 
 # Build output
 dist/
+build/
 coverage/
+
+# Uploads
+uploads/
 
 # Dependencies
 node_modules/

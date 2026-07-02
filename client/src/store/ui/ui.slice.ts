@@ -15,7 +15,7 @@ interface UIState {
 }
 
 const initialState: UIState = {
-  theme: (localStorage.getItem(STORAGE_KEYS.THEME) as Theme) || 'system',
+  theme: (localStorage.getItem(STORAGE_KEYS.THEME) as Theme) || 'light',
   density: (localStorage.getItem(STORAGE_KEYS.DENSITY) as Density) || 'comfortable',
   sidebarCollapsed: localStorage.getItem(STORAGE_KEYS.SIDEBAR) === 'true',
   mobileSidebarOpen: false,

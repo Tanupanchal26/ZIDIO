@@ -15,28 +15,16 @@ type UserDoc = Document & Record<string, any>;
 const USER_CACHE_TTL = CACHE_TTL.USER_SESSION;
 
 const invalidateUserCache = async (userId: string): Promise<void> => {
-  const redis = getRedisClient();
-  if (redis) await redis.del(REDIS_KEYS.USER_CACHE(userId)).catch(() => undefined);
+  // Redis removed
 };
 
 export const getProfile = async (userId: string): Promise<UserDoc> => {
-  const redis    = getRedisClient();
-  const cacheKey = REDIS_KEYS.USER_CACHE(userId);
-
-  if (redis) {
-    const cached = await redis.get(cacheKey).catch(() => null);
-    if (cached) return JSON.parse(cached) as UserDoc;
-  }
-
   const user = await User.findById(userId).select('-password');
   if (!user) {
     logger.warn(`User not found: ${sanitizeLog(userId)}`);
     throw ApiError.notFound('User not found');
   }
 
-  if (redis) {
-    await redis.setEx(cacheKey, USER_CACHE_TTL, JSON.stringify(user)).catch(() => undefined);
-  }
   return user as UserDoc;
 };
 

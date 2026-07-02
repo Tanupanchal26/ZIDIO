@@ -710,18 +710,6 @@
 .db-upcoming-indicator.emerald { background-color: #10b981; }
 
 /* ── Quick Actions Hover Styles ── */
-.db-quick-btn.hover-blue:hover {
-  border-color: rgba(59, 130, 246, 0.4);
-  background-color: rgba(59, 130, 246, 0.03);
-}
-.db-quick-btn.hover-blue:hover .db-quick-icon-wrapper {
-  background-color: rgba(59, 130, 246, 0.15);
-  border-color: rgba(59, 130, 246, 0.2);
-}
-.db-quick-btn.hover-blue:hover .db-quick-icon-wrapper svg {
-  color: #2563eb;
-}
-
 .db-quick-btn.hover-emerald:hover {
   border-color: rgba(16, 185, 129, 0.4);
   background-color: rgba(16, 185, 129, 0.03);
